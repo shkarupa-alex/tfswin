@@ -1,6 +1,6 @@
 # tfswin
 
-Keras (TFv2) reimplementation of **Swin Transformer** model.
+Keras (TensorFlow v2) reimplementation of **Swin Transformer** model.
 
 Based on [Official Pytorch implementation](https://github.com/microsoft/Swin-Transformer).
 

@@ -6,11 +6,11 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='tfswin',
-    version='1.0.0',
-    description='Swin transformer',
+    version='1.1.0',
+    description='Keras (TensorFlow v2) reimplementation of Swin Transformer model.',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/shkarupa-alex/swin-transformer-keras',
+    url='https://github.com/shkarupa-alex/tfswin',
     author='Shkarupa Alex',
     author_email='shkarupa.alex@gmail.com',
     license='MIT',
