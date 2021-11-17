@@ -1,8 +1,34 @@
 # tfswin
 
-Keras (TFv2) reimplementation of **Swin Transformer** model.
+Keras (TensorFlow v2) reimplementation of **Swin Transformer** model.
 
 Based on [Official Pytorch implementation](https://github.com/microsoft/Swin-Transformer).
+
+## Examples
+
+Default usage:
+
+```python
+from tfswin import SwinTransformerTiny224  # + 5 other variants
+
+model = SwinTransformerTiny224()  # by default will download imagenet[21k]-pretrained weights
+model.compile(...)
+model.fit(...)
+```
+
+Custom classification:
+
+```python
+from keras import layers, models
+from tfswin import SwinTransformerTiny224
+
+base_model = SwinTransformerTiny224(include_top=False)
+new_outputs = layers.Dense(100, activation='softmax')(base_model.outputs)
+new_model = models.Model(inputs=base_model.inputs, outputs=new_outputs)
+
+new_model.compile(...)
+new_model.fit(...)
+```
 
 ## Differences
 
@@ -26,6 +52,3 @@ Performance improvements:
   journal={arXiv preprint arXiv:2103.14030},
   year={2021}
 }
-
-## TODO:
-init

@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers
+from keras import initializers, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 
@@ -60,7 +60,7 @@ class WindowAttention(layers.Layer):
         self.relative_bias = self.add_weight(
             'relative_position_bias_table',
             shape=[(2 * self.window_size - 1) ** 2, self.num_heads],
-            initializer='zero',
+            initializer=initializers.TruncatedNormal(stddev=0.02),
             trainable=True,
             dtype=self.dtype)
 
