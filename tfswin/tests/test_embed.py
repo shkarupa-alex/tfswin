@@ -2,7 +2,7 @@ import numpy as np
 import os
 import tensorflow as tf
 from keras import keras_parameterized, testing_utils
-from ..embed import PatchEmbedding
+from tfswin.embed import PatchEmbedding
 
 
 @keras_parameterized.run_all_keras_modes

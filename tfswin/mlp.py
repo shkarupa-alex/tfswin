@@ -4,7 +4,7 @@ from keras.utils.tf_utils import shape_type_conversion
 
 
 @register_keras_serializable(package='TFSwin')
-class MultiLayerPerceptron(layers.Layer):
+class MLP(layers.Layer):
     def __init__(self, ratio, dropout, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)

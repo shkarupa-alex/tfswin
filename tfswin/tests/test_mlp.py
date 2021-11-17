@@ -2,14 +2,14 @@ import numpy as np
 import os
 import tensorflow as tf
 from keras import keras_parameterized, testing_utils
-from ..mlp import MultiLayerPerceptron
+from tfswin.mlp import MLP
 
 
 @keras_parameterized.run_all_keras_modes
-class TestMultiLayerPerceptron(keras_parameterized.TestCase):
+class TestMLP(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
-            MultiLayerPerceptron,
+            MLP,
             kwargs={'ratio': 0.5, 'dropout': 0.},
             input_shape=[2, 16, 3],
             input_dtype='float32',
@@ -17,7 +17,7 @@ class TestMultiLayerPerceptron(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
         testing_utils.layer_test(
-            MultiLayerPerceptron,
+            MLP,
             kwargs={'ratio': 1.5, 'dropout': 0.2},
             input_shape=[2, 16, 3],
             input_dtype='float32',
@@ -29,7 +29,7 @@ class TestMultiLayerPerceptron(keras_parameterized.TestCase):
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         inputs = np.load(f'{data_dir}/_mlp_input.npy')
         targets = np.load(f'{data_dir}/_mlp_output.npy')
-        layer = MultiLayerPerceptron(4., 0.)
+        layer = MLP(4., 0.)
         layer(inputs)  # build
         layer.set_weights([
             np.load(f'{data_dir}/_mlp_fc1_weight.npy').T,

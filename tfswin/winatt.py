@@ -7,24 +7,37 @@ from keras.utils.tf_utils import shape_type_conversion
 
 @register_keras_serializable(package='TFSwin')
 class WindowAttention(layers.Layer):
-    def __init__(self, window_size, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0., **kwargs):
+    def __init__(self, window_size, num_heads, qkv_bias=True, qk_scale=None, attn_mask=False, attn_drop=0.,
+                 proj_drop=0., **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)
+        if attn_mask:
+            self.input_spec = [self.input_spec, layers.InputSpec(ndim=3)]
 
         self.window_size = window_size
         self.num_heads = num_heads
         self.qkv_bias = qkv_bias
         self.qk_scale = qk_scale
+        self.attn_mask = attn_mask
         self.attn_drop = attn_drop
         self.proj_drop = proj_drop
 
     @shape_type_conversion
     def build(self, input_shape):
+        input_shape_ = input_shape[0] if self.attn_mask else input_shape
+
         # noinspection PyAttributeOutsideInit
-        self.length, self.channels = input_shape[1:]
+        self.length, self.channels = input_shape_[1:]
         if None in {self.length, self.channels}:
             raise ValueError('Length and channel dimensions of the inputs should be defined. Found `None`.')
         self.input_spec = layers.InputSpec(ndim=3, axes={1: self.length, 2: self.channels})
+
+        if self.attn_mask:
+            # noinspection PyAttributeOutsideInit
+            self.mask_windows = input_shape[1][0]
+            if self.mask_windows is None:
+                raise ValueError('First dimension of the mask should be defined. Found `None`.')
+            self.input_spec = [self.input_spec, layers.InputSpec(ndim=3, axes={0: self.mask_windows})]
 
         # noinspection PyAttributeOutsideInit
         self.scale = self.qk_scale or (self.channels // self.num_heads) ** -0.5
@@ -62,7 +75,11 @@ class WindowAttention(layers.Layer):
 
         super().build(input_shape)
 
-    def call(self, inputs, mask=None, **kwargs):
+    def call(self, inputs, **kwargs):
+        mask = None
+        if self.attn_mask:
+            inputs, mask = inputs
+
         qkv = self.qkv(inputs)
         qkv = tf.reshape(qkv, [-1, self.length, 3, self.num_heads, self.channels // self.num_heads])
         qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
@@ -76,8 +93,8 @@ class WindowAttention(layers.Layer):
         bias = tf.transpose(bias, perm=[2, 0, 1])
         attn = attn + bias[None, ...]
 
-        if mask is not None:
-            rept = tf.shape(inputs)[0] // mask.shape[0]
+        if self.attn_mask:
+            rept = tf.shape(inputs)[0] // self.mask_windows
             mask_ = tf.repeat(mask[:, None, ...], rept, axis=0)
             attn += mask_
 
@@ -94,6 +111,9 @@ class WindowAttention(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
+        if self.attn_mask:
+            return input_shape[0]
+
         return input_shape
 
     def get_config(self):
@@ -104,6 +124,7 @@ class WindowAttention(layers.Layer):
             'num_heads': self.num_heads,
             'qkv_bias': self.qkv_bias,
             'qk_scale': self.qk_scale,
+            'attn_mask': self.attn_mask,
             'attn_drop': self.attn_drop,
             'proj_drop': self.proj_drop,
         })

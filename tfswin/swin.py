@@ -3,14 +3,14 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .drop import DropPath
-from .mlp import MultiLayerPerceptron
-from .norm import LayerNorm
-from .winatt import WindowAttention
+from tfswin.drop import DropPath
+from tfswin.mlp import MLP
+from tfswin.norm import LayerNorm
+from tfswin.winatt import WindowAttention
 
 
 @register_keras_serializable(package='TFSwin')
-class SwinTransformerBlock(layers.Layer):
+class SwinBlock(layers.Layer):
     def __init__(self, num_heads, window_size=7, shift_size=0, mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0.,
                  attn_drop=0., path_drop=0., **kwargs):
         super().__init__(**kwargs)
@@ -50,7 +50,8 @@ class SwinTransformerBlock(layers.Layer):
 
         # noinspection PyAttributeOutsideInit
         self.attn = WindowAttention(window_size=self.window_size, num_heads=self.num_heads, qkv_bias=self.qkv_bias,
-                                    qk_scale=self.qk_scale, attn_drop=self.attn_drop, proj_drop=self.drop, name='attn')
+                                    qk_scale=self.qk_scale, attn_mask=bool(self.shift_size), attn_drop=self.attn_drop,
+                                    proj_drop=self.drop, name='attn')
 
         # noinspection PyAttributeOutsideInit
         self.drop_path = DropPath(self.path_drop)
@@ -59,14 +60,11 @@ class SwinTransformerBlock(layers.Layer):
         self.norm2 = LayerNorm(name='norm2')
 
         # noinspection PyAttributeOutsideInit
-        self.mlp = MultiLayerPerceptron(ratio=self.mlp_ratio, dropout=self.drop, name='mlp')
+        self.mlp = MLP(ratio=self.mlp_ratio, dropout=self.drop, name='mlp')
 
         super().build(input_shape)
 
     def attn_mask(self):
-        if not self.shift_size:
-            return None
-
         img_mask = np.zeros([1, self.size, self.size, 1], 'float32')
         h_slices = (slice(0, -self.window_size), slice(-self.window_size, -self.shift_size),
                     slice(-self.shift_size, None))
@@ -96,7 +94,10 @@ class SwinTransformerBlock(layers.Layer):
         outputs = window_partition(outputs, self.window_size)
 
         # W-MSA/SW-MSA
-        outputs = self.attn(outputs, mask=self.attn_mask())
+        if self.shift_size:
+            outputs = self.attn([outputs, self.attn_mask()])
+        else:
+            outputs = self.attn(outputs)
 
         # Merge windows
         outputs = window_reverse(outputs, self.size)

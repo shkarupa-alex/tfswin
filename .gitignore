@@ -108,3 +108,4 @@ ENV/
 *.whl
 *.pth
 tfswin/tests/data
+weights/

@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras import keras_parameterized, testing_utils
-from ..drop import DropPath
+from tfswin.drop import DropPath
 
 
 @keras_parameterized.run_all_keras_modes

@@ -4,7 +4,7 @@ from keras.utils.tf_utils import shape_type_conversion
 
 
 @register_keras_serializable(package='TFSwin')
-class AbsolutePositionEmbedding(layers.Layer):
+class AbsoluteEmbedding(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)
