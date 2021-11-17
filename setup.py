@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from pathlib import Path
 from setuptools import setup, find_packages
 
@@ -10,7 +6,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='tfswin',
-    version='1.8.1',
+    version='1.0.0',
     description='Swin transformer',
     long_description=long_description,
     long_description_content_type="text/markdown",
