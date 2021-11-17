@@ -1,5 +1,3 @@
-import numpy as np
-import os
 import tensorflow as tf
 from keras import keras_parameterized, testing_utils
 from tfswin.mlp import MLP
@@ -24,21 +22,6 @@ class TestMLP(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 3],
             expected_output_dtype='float32'
         )
-
-    def test_value(self):
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        inputs = np.load(f'{data_dir}/_mlp_input.npy')
-        targets = np.load(f'{data_dir}/_mlp_output.npy')
-        layer = MLP(4., 0.)
-        layer(inputs)  # build
-        layer.set_weights([
-            np.load(f'{data_dir}/_mlp_fc1_weight.npy').T,
-            np.load(f'{data_dir}/_mlp_fc1_bias.npy').T,
-            np.load(f'{data_dir}/_mlp_fc2_weight.npy').T,
-            np.load(f'{data_dir}/_mlp_fc2_bias.npy').T,
-        ])
-        outputs = self.evaluate(layer(inputs))
-        self.assertLess(np.abs(targets - outputs).max(), 2.29e-5)
 
 
 if __name__ == '__main__':

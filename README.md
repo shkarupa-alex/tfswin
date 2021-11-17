@@ -17,20 +17,6 @@ Performance improvements:
 - Layer normalization epsilon fixed at `1.001e-5`, inputs are casted to `float32` to use fused op implementation.
 - Some layers (like PatchMerging) have been refactored to use faster TF operations.
 
-
-+ ape.py
-- basic.py
-+ drop.py
-+ mlp.py
-- model.py
-+ norm.py
-+ embed.py
-+ merge.py
-+ prep.py
-+ swinblock.py
-- weight.py
-+ winatt.py
-
 ## Citation
 
 ```
