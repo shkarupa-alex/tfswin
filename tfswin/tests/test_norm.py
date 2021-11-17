@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras import keras_parameterized, testing_utils
-from ..norm import LayerNorm
+from tfswin.norm import LayerNorm
 
 
 @keras_parameterized.run_all_keras_modes

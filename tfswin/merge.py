@@ -3,7 +3,7 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .norm import LayerNorm
+from tfswin.norm import LayerNorm
 
 
 @register_keras_serializable(package='TFSwin')
@@ -43,6 +43,8 @@ class PatchMerging(layers.Layer):
             indices[0::2, 1::2],  # B H/2 W/2 C
             indices[1::2, 1::2]  # B H/2 W/2 C
         ], axis=-1).ravel()
+
+        super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
         outputs = tf.gather(inputs, self.indices, axis=1)

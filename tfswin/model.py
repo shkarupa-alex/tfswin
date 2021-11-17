@@ -2,11 +2,11 @@ import numpy as np
 import tensorflow as tf
 from keras import backend, layers, models
 from keras.applications import imagenet_utils
-from keras.utils import conv_utils, data_utils, layer_utils
-from .ape import AbsolutePositionEmbedding
-from .basic import BasicLayer
-from .embed import PatchEmbedding
-from .norm import LayerNorm
+from keras.utils import data_utils, layer_utils
+from tfswin.ape import AbsoluteEmbedding
+from tfswin.basic import BasicLayer
+from tfswin.embed import PatchEmbedding
+from tfswin.norm import LayerNorm
 
 BASE_WEIGHTS_PATH = ''
 WEIGHTS_HASHES = {}
@@ -33,8 +33,6 @@ def SwinTransformer(
         raise ValueError('If using `weights` as `"imagenet"` with `include_top` as true, '
                          '`classes` should be 1000 or 21843 depending on model type')
 
-    patch_size = conv_utils.normalize_tuple(patch_size, 2, 'patch_size')
-
     if input_tensor:
         try:
             backend.is_keras_tensor(input_tensor)
@@ -44,10 +42,16 @@ def SwinTransformer(
 
     if input_tensor:
         tensor_shape = backend.int_shape(input_tensor)[1:]
+        if input_tensor.dtype != 'float32':
+            raise ValueError('DType of `input_tensor` should equals to `float32`.')
+
         if input_shape and tensor_shape != input_shape:
             raise ValueError('Shape of `input_tensor` should equals to `input_shape` if both provided.')
         else:
             input_shape = tensor_shape
+
+    if input_shape[0] != input_shape[1]:
+        raise ValueError('Height and width of the inputs should be equal.')
 
     # Determine proper input shape
     input_shape = imagenet_utils.obtain_input_shape(
@@ -62,38 +66,26 @@ def SwinTransformer(
         if backend.is_keras_tensor(input_tensor):
             image = input_tensor
         else:
-            image = layers.Input(tensor=input_tensor, shape=input_shape)
+            image = layers.Input(tensor=input_tensor, shape=input_shape, dtype='float32')
     else:
         image = layers.Input(shape=input_shape)
 
     # Define model pipeline
-    x = PatchEmbedding(patch_size=patch_size[0], embed_dim=embed_dim, normalize=patch_norm, name='patch_embed')(image)
+    x = PatchEmbedding(patch_size=patch_size, embed_dim=embed_dim, normalize=patch_norm, name='patch_embed')(image)
 
     if use_ape:
-        x = AbsolutePositionEmbedding()(x)
+        x = AbsoluteEmbedding()(x)
 
     x = layers.Dropout(drop_rate, name='pos_drop')(x)
 
-    patches_resolution = [input_shape[0] // patch_size[0], input_shape[1] // patch_size[1]]
-    dpr = [x for x in np.linspace(0., drop_path_rate, sum(depths))]
+    path_drops = [x for x in np.linspace(0., drop_path_rate, sum(depths))]
 
     for i in range(len(depths)):
-        resolution = (patches_resolution[0] // (2 ** i), patches_resolution[1] // (2 ** i))
+        path_drop = path_drops[sum(depths[:i]):sum(depths[:i + 1])]
         not_last = i != len(depths) - 1
-        x = BasicLayer(
-            dim=int(embed_dim * 2 ** i),
-            input_resolution=resolution,
-            depth=depths[i],
-            num_heads=num_heads[i],
-            window_size=window_size,
-            mlp_ratio=mlp_ratio,
-            qkv_bias=qkv_bias,
-            qk_scale=qk_scale,
-            drop=drop_rate,
-            attn_drop=attn_drop_rate,
-            drop_path_prob=dpr[sum(depths[:i]):sum(depths[:i + 1])],
-            downsample=not_last,
-            name=f'layers.{i}')(x)
+        x = BasicLayer(depth=depths[i], num_heads=num_heads[i], window_size=window_size, mlp_ratio=mlp_ratio,
+                       qkv_bias=qkv_bias, qk_scale=qk_scale, drop=drop_rate, attn_drop=attn_drop_rate,
+                       path_drop=path_drop, downsample=not_last, name=f'layers.{i}')(x)
 
     x = LayerNorm(name='norm')(x)
 
@@ -132,80 +124,49 @@ def SwinTransformer(
     if include_top:
         return model
 
-    outputs = model.get_layer(name='avg_pool').output
+    last_layer = 'norm'
+    if pooling == 'avg':
+        last_layer = 'avg_pool'
+    elif pooling == 'max':
+        last_layer = 'max_pool'
+
+    outputs = model.get_layer(name=last_layer).output
     model = models.Model(inputs=inputs, outputs=outputs, name=model_name)
 
     return model
 
 
-def SwinTransformerTiny224(**kwargs):
-    return SwinTransformer(
-        model_name='swin_tiny',
-        input_shape=(224, 224, 3),
-        window_size=7,
-        embed_dim=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        **kwargs
-    )
+def SwinTransformerTiny224(model_name='swin_tiny', input_shape=(224, 224, 3), window_size=7, embed_dim=96,
+                           depths=(2, 2, 6, 2), num_heads=(3, 6, 12, 24), **kwargs):
+    return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
+                           depths=depths, num_heads=num_heads, **kwargs)
 
 
-def SwinTransformerSmall224(**kwargs):
-    return SwinTransformer(
-        model_name='swin_small',
-        input_shape=(224, 224, 3),
-        window_size=7,
-        embed_dim=96,
-        depths=[2, 2, 18, 2],
-        num_heads=[3, 6, 12, 24],
-        **kwargs
-    )
+def SwinTransformerSmall224(model_name='swin_small', input_shape=(224, 224, 3), window_size=7, embed_dim=96,
+                            depths=(2, 2, 18, 2), num_heads=(3, 6, 12, 24), **kwargs):
+    return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
+                           depths=depths, num_heads=num_heads, **kwargs)
 
 
-def SwinTransformerBase224(**kwargs):
-    # input_size = (224, 224, 3), window_size = 7, embed_dim = 128, depths = [2, 2, 18, 2], num_heads = [4, 8, 16, 32]
-    return SwinTransformer(
-        model_name='swin_base_224',
-        input_shape=(224, 224, 3),
-        window_size=7,
-        embed_dim=128,
-        depths=[2, 2, 18, 2],
-        num_heads=[4, 8, 16, 32],
-        **kwargs
-    )
+def SwinTransformerBase224(model_name='swin_base_224', input_shape=(224, 224, 3), window_size=7, embed_dim=128,
+                           depths=(2, 2, 18, 2), num_heads=(4, 8, 16, 32), classes=21841, **kwargs):
+    return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
+                           depths=depths, num_heads=num_heads, classes=classes, **kwargs)
 
 
-def SwinTransformerBase384(**kwargs):
-    return SwinTransformer(
-        model_name='swin_base_384',
-        input_shape=(384, 384, 3),
-        window_size=12,
-        embed_dim=128,
-        depths=[2, 2, 18, 2],
-        num_heads=[4, 8, 16, 32],
-        **kwargs
-    )
+def SwinTransformerBase384(model_name='swin_base_384', input_shape=(384, 384, 3), window_size=12, embed_dim=128,
+                           depths=(2, 2, 18, 2), num_heads=(4, 8, 16, 32), classes=21841, **kwargs):
+    return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
+                           depths=depths, num_heads=num_heads, classes=classes, **kwargs)
 
 
-def SwinTransformerLarge224(**kwargs):
-    return SwinTransformer(
-        model_name='swin_large_224',
-        input_shape=(224, 224, 3),
-        window_size=7,
-        embed_dim=192,
-        depths=[2, 2, 18, 2],
-        num_heads=[6, 12, 24, 48],
-        **kwargs
-    )
+def SwinTransformerLarge224(model_name='swin_large_224', input_shape=(224, 224, 3), window_size=7, embed_dim=192,
+                            depths=(2, 2, 18, 2), num_heads=(6, 12, 24, 48), classes=21841, **kwargs):
+    return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
+                           depths=depths, num_heads=num_heads, classes=classes, **kwargs)
 
 
-def SwinTransformerLarge384(**kwargs):
-    return SwinTransformer(
-        model_name='swin_large_384',
-        input_shape=(384, 384, 3),
-        window_size=12,
-        embed_dim=192,
-        depths=[2, 2, 18, 2],
-        num_heads=[6, 12, 24, 48],
-        **kwargs
-    )
+def SwinTransformerLarge384(model_name='swin_large_384', input_shape=(384, 384, 3), window_size=12, embed_dim=192,
+                            depths=(2, 2, 18, 2), num_heads=(6, 12, 24, 48), classes=21841, **kwargs):
+    return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
+                           depths=depths, num_heads=num_heads, classes=classes, **kwargs)

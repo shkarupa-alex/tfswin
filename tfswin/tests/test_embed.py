@@ -1,8 +1,6 @@
-import numpy as np
-import os
 import tensorflow as tf
 from keras import keras_parameterized, testing_utils
-from ..embed import PatchEmbedding
+from tfswin.embed import PatchEmbedding
 
 
 @keras_parameterized.run_all_keras_modes
@@ -24,21 +22,6 @@ class TestPatchEmbedding(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 2],
             expected_output_dtype='float32'
         )
-
-    def test_value(self):
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        inputs = np.load(f'{data_dir}/_patch_embed_input.npy').transpose([0, 2, 3, 1])
-        targets = np.load(f'{data_dir}/_patch_embed_output.npy')
-        layer = PatchEmbedding(4, 96, True)
-        layer(inputs)  # build
-        layer.set_weights([
-            np.load(f'{data_dir}/_patch_embed_proj_weight.npy').transpose([2, 3, 1, 0]),
-            np.load(f'{data_dir}/_patch_embed_proj_bias.npy').T,
-            np.load(f'{data_dir}/_patch_embed_norm_weight.npy').T,
-            np.load(f'{data_dir}/_patch_embed_norm_bias.npy').T,
-        ])
-        outputs = self.evaluate(layer(inputs))
-        self.assertLess(np.abs(targets - outputs).max(), 2.39e-6)
 
 
 if __name__ == '__main__':

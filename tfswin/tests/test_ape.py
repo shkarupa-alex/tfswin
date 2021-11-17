@@ -1,13 +1,13 @@
 import tensorflow as tf
 from keras import keras_parameterized, testing_utils
-from ..ape import AbsolutePositionEmbedding
+from tfswin.ape import AbsoluteEmbedding
 
 
 @keras_parameterized.run_all_keras_modes
-class TestAbsolutePositionEmbedding(keras_parameterized.TestCase):
+class TestAbsoluteEmbedding(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
-            AbsolutePositionEmbedding,
+            AbsoluteEmbedding,
             kwargs={},
             input_shape=[2, 16, 3],
             input_dtype='float32',
