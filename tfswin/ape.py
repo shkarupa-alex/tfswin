@@ -18,8 +18,8 @@ class AbsolutePositionEmbedding(layers.Layer):
 
         # noinspection PyAttributeOutsideInit
         self.embedding = self.add_weight(
-            name='embedding',
-            shape=(1, num_patches, embed_dim),
+            'embedding',
+            shape=[1, num_patches, embed_dim],
             initializer=initializers.TruncatedNormal(stddev=0.02),
             trainable=True,
             dtype=self.dtype)

@@ -27,6 +27,7 @@ def main(m):
     res = []
     for w in m.weights:
         name = convert_name(w.name)
+        # TODO: skip attn_mask, relative_position_index
         if 'attn.relative_position_index' in name or 'attn_mask' in name:
             res.append(w.numpy())
         else:

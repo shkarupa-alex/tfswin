@@ -44,6 +44,8 @@ class PatchMerging(layers.Layer):
             indices[1::2, 1::2]  # B H/2 W/2 C
         ], axis=-1).ravel()
 
+        super().build(input_shape)
+
     def call(self, inputs, *args, **kwargs):
         outputs = tf.gather(inputs, self.indices, axis=1)
         outputs = tf.reshape(outputs, [-1, self.length // 4, self.channels * 4])

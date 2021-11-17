@@ -32,57 +32,60 @@ class WindowAttention(layers.Layer):
         # noinspection PyAttributeOutsideInit
         self.qkv = layers.Dense(self.channels * 3, use_bias=self.qkv_bias, name='qkv')
 
-        self.drop_att = layers.Dropout(self.attn_drop)
+        coords = np.arange(self.window_size)
+        coords = np.stack(np.meshgrid(coords, coords, indexing='ij'))
+        coords_flat = coords.reshape([2, -1])
+        coords_relative = coords_flat[:, :, None] - coords_flat[:, None]
+        coords_relative = coords_relative.transpose([1, 2, 0])
+        coords_relative += self.window_size - 1
+        coords_relative[:, :, 0] *= 2 * self.window_size - 1
+
+        # noinspection PyAttributeOutsideInit
+        self.relative_index = coords_relative.sum(-1).ravel()
+
+        # noinspection PyAttributeOutsideInit
+        self.relative_bias = self.add_weight(
+            'relative_position_bias_table',
+            shape=[(2 * self.window_size - 1) ** 2, self.num_heads],
+            initializer='zero',
+            trainable=True,
+            dtype=self.dtype)
+
+        # noinspection PyAttributeOutsideInit
+        self.drop_attn = layers.Dropout(self.attn_drop)
+
+        # noinspection PyAttributeOutsideInit
         self.proj = layers.Dense(self.channels, name='proj')
+
+        # noinspection PyAttributeOutsideInit
         self.drop_proj = layers.Dropout(self.proj_drop)
 
-        coords_h = np.arange(self.window_size)
-        coords_w = np.arange(self.window_size)
-        coords = np.stack(np.meshgrid(coords_h, coords_w, indexing='ij'))
-        coords_flatten = coords.reshape(2, -1)
-        relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]
-        relative_coords = relative_coords.transpose([1, 2, 0])
-        relative_coords[:, :, 0] += self.window_size - 1
-        relative_coords[:, :, 1] += self.window_size - 1
-        relative_coords[:, :, 0] *= 2 * self.window_size - 1
-        relative_position_index = relative_coords.sum(-1).astype(np.int64)
-        self.relative_position_index = relative_position_index.ravel()
-        self.relative_position_bias_table = self.add_weight(
-            'relative_position_bias_table',
-            shape=((2 * self.window_size - 1) ** 2, self.num_heads),
-            initializer='zero', trainable=True)
-
-        self.built = True
+        super().build(input_shape)
 
     def call(self, inputs, mask=None, **kwargs):
-        B_, N, C = inputs.get_shape().as_list()
-        qkv = self.qkv(inputs)  # B, N, 3 * C == B, N, 3, self.num_heads, C // self.num_heads
+        qkv = self.qkv(inputs)
         qkv = tf.reshape(qkv, [-1, self.length, 3, self.num_heads, self.channels // self.num_heads])
         qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
-        q, k, v = tf.unstack(qkv, 3, axis=0)
 
-        q = q * self.scale
+        q, k, v = tf.unstack(qkv, 3)
+        q *= self.scale
         attn = tf.matmul(q, k, transpose_b=True)
-        relative_position_bias = tf.gather(self.relative_position_bias_table, self.relative_position_index)
-        relative_position_bias = tf.reshape(relative_position_bias, shape=[
-            self.window_size ** 2, self.window_size ** 2, -1])
-        relative_position_bias = tf.transpose(
-            relative_position_bias, perm=[2, 0, 1])
-        attn = attn + tf.expand_dims(relative_position_bias, axis=0)
+
+        bias = tf.gather(self.relative_bias, self.relative_index)
+        bias = tf.reshape(bias, [self.window_size ** 2, self.window_size ** 2, -1])
+        bias = tf.transpose(bias, perm=[2, 0, 1])
+        attn = attn + bias[None, ...]
 
         if mask is not None:
-            nW = mask.get_shape()[0]  # tf.shape(mask)[0]
-            attn = tf.reshape(attn, shape=[-1, nW, self.num_heads, N, N]) + tf.cast(
-                tf.expand_dims(tf.expand_dims(mask, axis=1), axis=0), tf.float32)
-            attn = tf.reshape(attn, shape=[-1, self.num_heads, N, N])
-            attn = tf.nn.softmax(attn, axis=-1)
-        else:
-            attn = tf.nn.softmax(attn, axis=-1)
+            rept = tf.shape(inputs)[0] // mask.shape[0]
+            mask_ = tf.repeat(mask[:, None, ...], rept, axis=0)
+            attn += mask_
 
-        attn = self.drop_att(attn)
+        attn = tf.nn.softmax(attn)
+        attn = self.drop_attn(attn)
 
         outputs = tf.transpose(tf.matmul(attn, v), perm=[0, 2, 1, 3])
-        outputs = tf.reshape(outputs, shape=[-1, N, C])
+        outputs = tf.reshape(outputs, [-1, self.length, self.channels])
 
         outputs = self.proj(outputs)
         outputs = self.drop_proj(outputs)

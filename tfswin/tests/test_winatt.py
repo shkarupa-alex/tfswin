@@ -37,6 +37,27 @@ class TestWindowAttention(keras_parameterized.TestCase):
         outputs = self.evaluate(layer(inputs))
         self.assertLess(np.abs(targets - outputs).max(), 2.87e-6)
 
+    def test_value_masked(self):
+        data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        inputs = np.load(f'{data_dir}/_winatt_masked_input.npy')
+        masks = tf.constant(np.load(f'{data_dir}/_winatt_mask.npy'), 'float32')
+        targets = np.load(f'{data_dir}/_winatt_masked_output.npy')
+        layer = WindowAttention(7, 12, True, None, 0., 0.)
+        layer(inputs, mask=masks)  # build
+        layer.set_weights([
+            # layer.get_weights()[0],
+            np.load(f'{data_dir}/_winatt_masked_rel_bias.npy'),
+            np.load(f'{data_dir}/_winatt_masked_qkv_weight.npy').T,
+            np.load(f'{data_dir}/_winatt_masked_qkv_bias.npy').T,
+            np.load(f'{data_dir}/_winatt_masked_proj_weight.npy').T,
+            np.load(f'{data_dir}/_winatt_masked_proj_bias.npy').T,
+            # layer.get_weights()[-1]
+            # np.load(f'{data_dir}/_winatt_rel_index.npy'),
+        ])
+        outputs = self.evaluate(layer(inputs, mask=masks))
+        self.assertLess(np.abs(targets - outputs).max(), 2.87e-6)
+        # self.assertTrue(False)
+
 
 if __name__ == '__main__':
     tf.test.main()

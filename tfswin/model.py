@@ -91,7 +91,7 @@ def SwinTransformer(
             qk_scale=qk_scale,
             drop=drop_rate,
             attn_drop=attn_drop_rate,
-            drop_path_prob=dpr[sum(depths[:i]):sum(depths[:i + 1])],
+            path_drop=dpr[sum(depths[:i]):sum(depths[:i + 1])],
             downsample=not_last,
             name=f'layers.{i}')(x)
 

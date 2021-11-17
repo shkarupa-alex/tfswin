@@ -27,9 +27,9 @@ Performance improvements:
 + embed.py
 + merge.py
 + prep.py
-- swinblock.py
++ swinblock.py
 - weight.py
-- winatt.py
++ winatt.py
 
 ## Citation
 

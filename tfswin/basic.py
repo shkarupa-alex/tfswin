@@ -10,7 +10,7 @@ from .swin import SwinTransformerBlock
 class BasicLayer(layers.Layer):
     def __init__(self, dim, input_resolution, depth, num_heads, window_size,
                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0.,
-                 drop_path_prob=0., downsample=False, **kwargs):
+                 path_drop=0., downsample=False, **kwargs):
         super().__init__(**kwargs)
         self.dim = dim
         self.input_resolution = input_resolution
@@ -22,19 +22,18 @@ class BasicLayer(layers.Layer):
         self.qk_scale = qk_scale
         self.drop = drop
         self.attn_drop = attn_drop
-        self.drop_path_prob = drop_path_prob
+        self.path_drop = path_drop
         self.downsample = downsample
 
         # build blocks
         self.blocks = [
             SwinTransformerBlock(
-                dim=dim, input_resolution=input_resolution,
                 num_heads=num_heads, window_size=window_size,
                 shift_size=0 if (i % 2 == 0) else window_size // 2,
                 mlp_ratio=mlp_ratio,
                 qkv_bias=qkv_bias, qk_scale=qk_scale,
                 drop=drop, attn_drop=attn_drop,
-                drop_path_prob=drop_path_prob[i] if isinstance(drop_path_prob, list) else drop_path_prob,
+                path_drop=path_drop[i] if isinstance(path_drop, list) else path_drop,
                 name=f'blocks.{i}'
             ) for i in range(depth)]
 
@@ -63,7 +62,7 @@ class BasicLayer(layers.Layer):
             'qk_scale': self.qk_scale,
             'drop': self.drop,
             'attn_drop': self.attn_drop,
-            'drop_path_prob': self.drop_path_prob,
+            'path_drop': self.path_drop,
             'downsample': self.downsample,
         })
 
