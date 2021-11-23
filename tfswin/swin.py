@@ -78,10 +78,10 @@ class SwinBlock(layers.Layer):
                 img_mask[:, h, w, :] = cnt
                 cnt += 1
 
-        mask_windows = window_partition(img_mask, self.window_size, self.compute_dtype)[..., 0]
+        mask_windows = window_partition(img_mask, self.window_size, 'float32')[..., 0]
         attn_mask = mask_windows[:, None] - mask_windows[:, :, None]
-        # attn_mask = tf.cast(attn_mask == 0., self.compute_dtype) - 101.
         attn_mask = tf.where(attn_mask == 0., 0., -100.)
+        attn_mask = tf.cast(attn_mask, self.compute_dtype)
 
         return attn_mask
 
@@ -94,7 +94,7 @@ class SwinBlock(layers.Layer):
             outputs = tf.roll(outputs, [-self._shift_size, -self._shift_size], [1, 2])
 
         # Partition windows
-        outputs = window_partition(outputs, self.window_size)
+        outputs = window_partition(outputs, self.window_size, self.compute_dtype)
 
         # W-MSA/SW-MSA
         if self._shift_size:
@@ -103,7 +103,7 @@ class SwinBlock(layers.Layer):
             outputs = self.attn(outputs)
 
         # Merge windows
-        outputs = window_reverse(outputs, self.size)
+        outputs = window_reverse(outputs, self.size, self.compute_dtype)
 
         # Reverse cyclic shift
         if self._shift_size > 0:
