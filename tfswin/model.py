@@ -73,14 +73,14 @@ def SwinTransformer(
         raise ValueError('If using `weights` as `"imagenet"` with `include_top` as true, '
                          '`classes` should be 1000 or 21841 depending on model type')
 
-    if input_tensor:
+    if input_tensor is not None:
         try:
             backend.is_keras_tensor(input_tensor)
         except ValueError:
             raise ValueError(f'Expecting `input_tensor` to be a symbolic tensor instance. '
                              f'Got {input_tensor} of type {type(input_tensor)}')
 
-    if input_tensor:
+    if input_tensor is not None:
         tensor_shape = backend.int_shape(input_tensor)[1:]
         if input_tensor.dtype != 'float32':
             raise ValueError('DType of `input_tensor` should equals to `float32`.')
@@ -102,7 +102,7 @@ def SwinTransformer(
         require_flatten=False,
         weights=weights)
 
-    if input_tensor:
+    if input_tensor is not None:
         if backend.is_keras_tensor(input_tensor):
             image = input_tensor
         else:
