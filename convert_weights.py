@@ -71,7 +71,7 @@ if '__main__' == __name__:
         name = convert_name(w.name)
         assert name in weights_torch['model'], f'Can\'t find weight {name} in checkpoint'
 
-        weight = weights_torch['model'][name].numpy()
+        weight = weights_torch['model'].pop(name).numpy()
         weight = convert_weight(weight, name)
 
         weights_tf.append(weight)

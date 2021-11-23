@@ -31,7 +31,6 @@ class PatchEmbedding(layers.Layer):
         # noinspection PyAttributeOutsideInit
         self.proj = layers.Conv2D(self.embed_dim, kernel_size=self.patch_size, strides=self.patch_size, name='proj')
 
-        self.norm = None
         if self.normalize:
             # noinspection PyAttributeOutsideInit
             self.norm = LayerNorm(name='norm')
@@ -42,7 +41,7 @@ class PatchEmbedding(layers.Layer):
         outputs = self.proj(inputs)
         outputs = tf.reshape(outputs, [-1, self.num_patches, self.embed_dim])
 
-        if self.norm is not None:
+        if self.normalize:
             outputs = self.norm(outputs)
 
         return outputs

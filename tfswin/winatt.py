@@ -94,9 +94,9 @@ class WindowAttention(layers.Layer):
         attn = attn + bias[None, ...]
 
         if self.attn_mask:
-            rept = tf.shape(inputs)[0] // self.mask_windows
-            mask_ = tf.repeat(mask[:, None, ...], rept, axis=0)
-            attn += mask_
+            attn = tf.reshape(attn, shape=[-1, self.mask_windows, self.num_heads, self.length, self.length])
+            attn += mask[None, :, None, ...]
+            attn = tf.reshape(attn, shape=[-1, self.num_heads, self.length, self.length])
 
         attn = tf.nn.softmax(attn)
         attn = self.drop_attn(attn)

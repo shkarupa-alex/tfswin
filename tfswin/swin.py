@@ -39,10 +39,12 @@ class SwinBlock(layers.Layer):
         if self.size ** 2 != self.length:
             raise ValueError('Height and width of the inputs should be equal.')
 
+        self._shift_size = self.shift_size
         if self.size <= self.window_size:
-            self.shift_size = 0
+            # noinspection PyAttributeOutsideInit
+            self._shift_size = 0
             self.window_size = self.size
-        if not 0 <= self.shift_size < self.window_size:
+        if not 0 <= self._shift_size < self.window_size:
             raise ValueError('Shift size must be in range [0; window_size).')
 
         # noinspection PyAttributeOutsideInit
@@ -50,7 +52,7 @@ class SwinBlock(layers.Layer):
 
         # noinspection PyAttributeOutsideInit
         self.attn = WindowAttention(window_size=self.window_size, num_heads=self.num_heads, qkv_bias=self.qkv_bias,
-                                    qk_scale=self.qk_scale, attn_mask=bool(self.shift_size), attn_drop=self.attn_drop,
+                                    qk_scale=self.qk_scale, attn_mask=bool(self._shift_size), attn_drop=self.attn_drop,
                                     proj_drop=self.drop, name='attn')
 
         # noinspection PyAttributeOutsideInit
@@ -66,19 +68,20 @@ class SwinBlock(layers.Layer):
 
     def attn_mask(self):
         img_mask = np.zeros([1, self.size, self.size, 1], 'float32')
-        h_slices = (slice(0, -self.window_size), slice(-self.window_size, -self.shift_size),
-                    slice(-self.shift_size, None))
-        w_slices = (slice(0, -self.window_size), slice(-self.window_size, -self.shift_size),
-                    slice(-self.shift_size, None))
+        h_slices = (slice(0, -self.window_size), slice(-self.window_size, -self._shift_size),
+                    slice(-self._shift_size, None))
+        w_slices = (slice(0, -self.window_size), slice(-self.window_size, -self._shift_size),
+                    slice(-self._shift_size, None))
         cnt = 0
         for h in h_slices:
             for w in w_slices:
                 img_mask[:, h, w, :] = cnt
                 cnt += 1
 
-        mask_windows = window_partition(img_mask, self.window_size, self.compute_dtype)[..., 0]
+        mask_windows = window_partition(img_mask, self.window_size, 'float32')[..., 0]
         attn_mask = mask_windows[:, None] - mask_windows[:, :, None]
-        attn_mask = tf.cast(attn_mask == 0., self.compute_dtype) - 101.
+        attn_mask = tf.where(attn_mask == 0., 0., -100.)
+        attn_mask = tf.cast(attn_mask, self.compute_dtype)
 
         return attn_mask
 
@@ -87,24 +90,24 @@ class SwinBlock(layers.Layer):
         outputs = tf.reshape(outputs, [-1, self.size, self.size, self.channels])
 
         # Cyclic shift
-        if self.shift_size > 0:
-            outputs = tf.roll(outputs, [-self.shift_size, -self.shift_size], [1, 2])
+        if self._shift_size > 0:
+            outputs = tf.roll(outputs, [-self._shift_size, -self._shift_size], [1, 2])
 
         # Partition windows
-        outputs = window_partition(outputs, self.window_size)
+        outputs = window_partition(outputs, self.window_size, self.compute_dtype)
 
         # W-MSA/SW-MSA
-        if self.shift_size:
+        if self._shift_size:
             outputs = self.attn([outputs, self.attn_mask()])
         else:
             outputs = self.attn(outputs)
 
         # Merge windows
-        outputs = window_reverse(outputs, self.size)
+        outputs = window_reverse(outputs, self.size, self.compute_dtype)
 
         # Reverse cyclic shift
-        if self.shift_size > 0:
-            outputs = tf.roll(outputs, [self.shift_size, self.shift_size], [1, 2])
+        if self._shift_size > 0:
+            outputs = tf.roll(outputs, [self._shift_size, self._shift_size], [1, 2])
 
         # FFN
         outputs = tf.reshape(outputs, [-1, self.length, self.channels])

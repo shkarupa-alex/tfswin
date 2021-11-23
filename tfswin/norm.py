@@ -12,12 +12,15 @@ class LayerNorm(layers.LayerNormalization):
         kwargs['autocast'] = False
         super().__init__(epsilon=epsilon, dtype=dtype, **kwargs)
 
+    def build(self, input_shape):
+        super().build(input_shape)
+        if not self._fused:
+            warnings.warn(f'Layer {self.name} will use an inefficient implementation.')
+
     def call(self, inputs, *args, **kwargs):
         outputs = tf.cast(inputs, 'float32')
 
         outputs = super().call(outputs)
-        if not self._fused:
-            warnings.warn(f'Layer {self.name} will use an inefficient implementation.')
 
         if inputs.dtype == tf.dtypes.float16:
             outputs = tf.clip_by_value(outputs, tf.dtypes.float16.min, tf.dtypes.float16.max)

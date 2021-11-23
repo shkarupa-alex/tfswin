@@ -36,8 +36,8 @@ class BasicLayer(layers.Layer):
         # noinspection PyAttributeOutsideInit
         self.blocks = [
             SwinBlock(num_heads=self.num_heads, window_size=self.window_size, shift_size=shift_size[i],
-                                 mlp_ratio=self.mlp_ratio, qkv_bias=self.qkv_bias, qk_scale=self.qk_scale,
-                                 drop=self.drop, attn_drop=self.attn_drop, path_drop=path_drop[i], name=f'blocks.{i}')
+                      mlp_ratio=self.mlp_ratio, qkv_bias=self.qkv_bias, qk_scale=self.qk_scale,
+                      drop=self.drop, attn_drop=self.attn_drop, path_drop=path_drop[i], name=f'blocks.{i}')
             for i in range(self.depth)]
 
         if self.downsample:
