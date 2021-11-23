@@ -54,6 +54,11 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
         self.assertEqual(output_shape[-1], last_dim)
 
     @parameterized.parameters(*MODEL_LIST)
+    def test_application_weights_notop(self, app, size, last_dim):
+        model = app(weights='imagenet', include_top=False)
+        self.assertEqual(model.output_shape[-1], last_dim)
+
+    @parameterized.parameters(*MODEL_LIST)
     def test_application_predict(self, app, size, _):
         model = app(weights='imagenet')
         self.assertIn(model.output_shape[-1], {1000, 21841})
