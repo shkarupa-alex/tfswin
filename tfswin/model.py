@@ -129,15 +129,16 @@ def SwinTransformer(
 
     x = LayerNorm(name='norm')(x)
 
-    if include_top:
-        x = layers.GlobalAveragePooling1D(name='avg_pool')(x)
-        imagenet_utils.validate_activation(classifier_activation, weights)
-        x = layers.Dense(classes, name='head')(x)
-        x = layers.Activation(classifier_activation, dtype='float32', name='pred')(x)
-    elif pooling == 'avg':
+    if include_top or pooling in {None, 'avg'}:
         x = layers.GlobalAveragePooling1D(name='avg_pool')(x)
     elif pooling == 'max':
         x = layers.GlobalMaxPooling1D(name='max_pool')(x)
+    else:
+        raise ValueError(f'Expecting pooling to be one of None/avg/max. Found: {pooling}')
+
+    imagenet_utils.validate_activation(classifier_activation, weights)
+    x = layers.Dense(classes, name='head')(x)
+    x = layers.Activation(classifier_activation, dtype='float32', name='pred')(x)
 
     # Ensure that the model takes into account any potential predecessors of `input_tensor`.
     if input_tensor is not None:
