@@ -173,21 +173,24 @@ def SwinTransformer(
 
 
 def SwinTransformerTiny224(model_name='swin_tiny_224', input_shape=(224, 224, 3), window_size=7, embed_dim=96,
-                           depths=(2, 2, 6, 2), num_heads=(3, 6, 12, 24), weights='imagenet', **kwargs):
+                           depths=(2, 2, 6, 2), num_heads=(3, 6, 12, 24), path_drop=0.2, weights='imagenet', **kwargs):
     return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
-                           depths=depths, num_heads=num_heads, weights=weights, **kwargs)
+                           depths=depths, num_heads=num_heads, path_drop=path_drop, weights=weights, **kwargs)
 
 
 def SwinTransformerSmall224(model_name='swin_small_224', input_shape=(224, 224, 3), window_size=7, embed_dim=96,
-                            depths=(2, 2, 18, 2), num_heads=(3, 6, 12, 24), weights='imagenet', **kwargs):
+                            depths=(2, 2, 18, 2), num_heads=(3, 6, 12, 24), path_drop=0.3, weights='imagenet',
+                            **kwargs):
     return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
-                           depths=depths, num_heads=num_heads, weights=weights, **kwargs)
+                           depths=depths, num_heads=num_heads, path_drop=path_drop, weights=weights, **kwargs)
 
 
 def SwinTransformerBase224(model_name='swin_base_224', input_shape=(224, 224, 3), window_size=7, embed_dim=128,
-                           depths=(2, 2, 18, 2), num_heads=(4, 8, 16, 32), classes=21841, weights='imagenet', **kwargs):
+                           depths=(2, 2, 18, 2), num_heads=(4, 8, 16, 32), path_drop=0.5, classes=21841,
+                           weights='imagenet', **kwargs):
     return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
-                           depths=depths, num_heads=num_heads, weights=weights, classes=classes, **kwargs)
+                           depths=depths, num_heads=num_heads, path_drop=path_drop, weights=weights, classes=classes,
+                           **kwargs)
 
 
 def SwinTransformerBase384(model_name='swin_base_384', input_shape=(384, 384, 3), window_size=12, embed_dim=128,
@@ -208,4 +211,3 @@ def SwinTransformerLarge384(model_name='swin_large_384', input_shape=(384, 384, 
                             **kwargs):
     return SwinTransformer(model_name=model_name, input_shape=input_shape, window_size=window_size, embed_dim=embed_dim,
                            depths=depths, num_heads=num_heads, weights=weights, classes=classes, **kwargs)
-
