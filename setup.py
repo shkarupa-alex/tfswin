@@ -6,7 +6,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='tfswin',
-    version='1.2.2',
+    version='2.0.0',
     description='Keras (TensorFlow v2) reimplementation of Swin Transformer model.',
     long_description=long_description,
     long_description_content_type="text/markdown",
