@@ -1,4 +1,4 @@
-import numpy as np
+import math
 import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
@@ -10,7 +10,7 @@ from tfswin.norm import LayerNorm
 class PatchMerging(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=3)
+        self.input_spec = layers.InputSpec(ndim=4)
 
         self.length = None
         self.channels = None
@@ -18,16 +18,11 @@ class PatchMerging(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.length, self.channels = input_shape[1:]
-        if None in {self.length, self.channels}:
-            raise ValueError('Length and channel dimensions of the inputs should be defined. Found `None`.')
-        self.input_spec = layers.InputSpec(ndim=3, axes={1: self.length, 2: self.channels})
-
-        self.size = int(self.length ** 0.5)
-        if self.size ** 2 != self.length:
-            raise ValueError('Height and width of the inputs should be equal.')
-        if self.size % 2:
-            raise ValueError('Height and width should be evenly dividable by 2.')
+        # noinspection PyAttributeOutsideInit
+        self.channels = input_shape[-1]
+        if self.channels is None:
+            raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
+        self.input_spec = layers.InputSpec(ndim=4, axes={-1: self.channels})
 
         # noinspection PyAttributeOutsideInit
         self.norm = LayerNorm(name='norm')
@@ -35,20 +30,17 @@ class PatchMerging(layers.Layer):
         # noinspection PyAttributeOutsideInit
         self.reduction = layers.Dense(self.channels * 2, use_bias=False, name='reduction')
 
-        indices = np.arange(0, self.length).reshape((self.size, self.size))
-        # noinspection PyAttributeOutsideInit
-        self.indices = np.stack([
-            indices[0::2, 0::2],  # B H/2 W/2 C
-            indices[1::2, 0::2],  # B H/2 W/2 C
-            indices[0::2, 1::2],  # B H/2 W/2 C
-            indices[1::2, 1::2]  # B H/2 W/2 C
-        ], axis=-1).ravel()
-
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        outputs = tf.gather(inputs, self.indices, axis=1)
-        outputs = tf.reshape(outputs, [-1, self.length // 4, self.channels * 4])
+        paddings = [[0, 0], [0, 1], [0, 1], [0, 0]]
+        outputs = tf.pad(inputs, paddings)
+
+        slice00 = outputs[:, 0:-1:2, 0:-1:2, :]  # B H/2 W/2 C
+        slice10 = outputs[:, 1::2, 0:-1:2, :]  # B H/2 W/2 C
+        slice01 = outputs[:, 0:-1:2, 1::2, :]  # B H/2 W/2 C
+        slice11 = outputs[:, 1::2, 1::2, :]  # B H/2 W/2 C
+        outputs = tf.concat([slice00, slice10, slice01, slice11], axis=-1)
 
         outputs = self.norm(outputs)
         outputs = self.reduction(outputs)
@@ -57,7 +49,7 @@ class PatchMerging(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        out_length = None if self.length is None else self.length // 4
-        out_channels = None if self.channels is None else self.channels * 2
+        out_height = None if input_shape[1] is None else math.ceil(input_shape[1] / 2)
+        out_width = None if input_shape[2] is None else math.ceil(input_shape[2] / 2)
 
-        return [input_shape[0], out_length, out_channels]
+        return [input_shape[0], out_height, out_width, self.channels * 2]
