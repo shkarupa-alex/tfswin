@@ -39,6 +39,7 @@ Code simplification:
 - Pretrain input height and width are always equal
 - Patch height and width are always equal
 - All input shapes automatically evaluated (not passed through a constructor like in PyTorch)
+- Downsampling have been moved out from basic layer to simplify feature extraction in downstream tasks.
 
 Performance improvements:
 

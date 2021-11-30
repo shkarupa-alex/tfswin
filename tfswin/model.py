@@ -153,11 +153,10 @@ def SwinTransformer(
 
     # Load weights.
     if 'imagenet' == weights and model_name in WEIGHT_URLS:
-        # weights_url = WEIGHT_URLS[model_name]
-        # weights_hash = WEIGHT_HASHES[model_name]
-        # weights_path = data_utils.get_file(origin=weights_url, file_hash=weights_hash, cache_subdir='tfswin')
-        # model.load_weights(weights_path)
-        model.load_weights('/Users/alex/Develop/tfswin/dist/swin_tiny_patch4_window7_224.h5')
+        weights_url = WEIGHT_URLS[model_name]
+        weights_hash = WEIGHT_HASHES[model_name]
+        weights_path = data_utils.get_file(origin=weights_url, file_hash=weights_hash, cache_subdir='tfswin')
+        model.load_weights(weights_path)
     elif weights is not None:
         model.load_weights(weights)
 
