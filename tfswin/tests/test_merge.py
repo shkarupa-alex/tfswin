@@ -9,9 +9,17 @@ class TestPatchMerging(keras_parameterized.TestCase):
         testing_utils.layer_test(
             PatchMerging,
             kwargs={},
-            input_shape=[2, 12 * 12, 4],
+            input_shape=[2, 12, 12, 4],
             input_dtype='float32',
-            expected_output_shape=[None, 6 * 6, 8],
+            expected_output_shape=[None, 6, 6, 8],
+            expected_output_dtype='float32'
+        )
+        testing_utils.layer_test(
+            PatchMerging,
+            kwargs={},
+            input_shape=[2, 11, 13, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 6, 7, 8],
             expected_output_dtype='float32'
         )
 

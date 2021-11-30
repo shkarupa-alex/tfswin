@@ -36,16 +36,23 @@ model.fit(...)
 
 Code simplification:
 
-- Input height and width are always equal
+- Pretrain input height and width are always equal
 - Patch height and width are always equal
 - All input shapes automatically evaluated (not passed through a constructor like in PyTorch)
 
 Performance improvements:
 
 - Layer normalization epsilon fixed at `1.001e-5`, inputs are casted to `float32` to use fused op implementation.
-- Some layers (like PatchMerging) have been refactored to use faster TF operations.
+- Some layers have been refactored to use faster TF operations.
+- A lot of reshapes have been removed. Most of the time internal representation is 4D-tensor.
+- Attention mask estimation moved to basic layer level.
 
-# Evaluation
+## Variable shapes
+
+When using Swin models with shapes different from pretraining one, try to make height and width to be multiple
+of `32 * window_size`. Otherwise a lot of tensors will be padded, resulting in speed and (possibly) quality degradation.
+
+## Evaluation
 
 For correctness, `Tiny` and `Small` models (original and ported) tested
 with [ImageNet-v2 test set](https://www.tensorflow.org/datasets/catalog/imagenet_v2).

@@ -30,7 +30,7 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
     @parameterized.parameters(*MODEL_LIST)
     def test_application_notop(self, app, _, last_dim):
         output_shape = app(weights=None, include_top=False).output_shape
-        self.assertLen(output_shape, 3)
+        self.assertLen(output_shape, 4)
         self.assertEqual(output_shape[-1], last_dim)
 
     @parameterized.parameters(*MODEL_LIST)
@@ -43,14 +43,14 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
     def test_application_input_1_channel(self, app, size, last_dim):
         input_shape = (size, size, 1)
         output_shape = app(weights=None, include_top=False, input_shape=input_shape).output_shape
-        self.assertLen(output_shape, 3)
+        self.assertLen(output_shape, 4)
         self.assertEqual(output_shape[-1], last_dim)
 
     @parameterized.parameters(*MODEL_LIST)
     def test_application_input_4_channels(self, app, size, last_dim):
         input_shape = (size, size, 4)
         output_shape = app(weights=None, include_top=False, input_shape=input_shape).output_shape
-        self.assertLen(output_shape, 3)
+        self.assertLen(output_shape, 4)
         self.assertEqual(output_shape[-1], last_dim)
 
     @parameterized.parameters(*MODEL_LIST)
