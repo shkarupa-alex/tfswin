@@ -17,9 +17,9 @@ class TestLayerNorm(keras_parameterized.TestCase):
         testing_utils.layer_test(
             LayerNorm,
             kwargs={},
-            input_shape=[2, 16, 16, 3],
+            input_shape=[2, 16, 3],
             input_dtype='float16',
-            expected_output_shape=[None, 16, 16, 3],
+            expected_output_shape=[None, 16, 3],
             expected_output_dtype='float16'
         )
 

@@ -11,7 +11,7 @@ class TestPatchEmbedding(keras_parameterized.TestCase):
             kwargs={'patch_size': 4, 'embed_dim': 2, 'normalize': False},
             input_shape=[2, 12, 12, 3],
             input_dtype='float32',
-            expected_output_shape=[None, 9, 2],
+            expected_output_shape=[None, 3, 3, 2],
             expected_output_dtype='float32'
         )
         testing_utils.layer_test(
@@ -19,7 +19,7 @@ class TestPatchEmbedding(keras_parameterized.TestCase):
             kwargs={'patch_size': 3, 'embed_dim': 2, 'normalize': True},
             input_shape=[2, 12, 12, 3],
             input_dtype='float32',
-            expected_output_shape=[None, 16, 2],
+            expected_output_shape=[None, 4, 4, 2],
             expected_output_dtype='float32'
         )
 

@@ -8,10 +8,18 @@ class TestAbsoluteEmbedding(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
             AbsoluteEmbedding,
-            kwargs={},
-            input_shape=[2, 16, 3],
+            kwargs={'pretrain_size': 56},
+            input_shape=[2, 56, 56, 3],
             input_dtype='float32',
-            expected_output_shape=[None, 16, 3],
+            expected_output_shape=[None, 56, 56, 3],
+            expected_output_dtype='float32'
+        )
+        testing_utils.layer_test(
+            AbsoluteEmbedding,
+            kwargs={'pretrain_size': 56},
+            input_shape=[2, 112, 112, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 112, 112, 3],
             expected_output_dtype='float32'
         )
 

@@ -9,19 +9,10 @@ class TestBasicLayer(keras_parameterized.TestCase):
         testing_utils.layer_test(
             BasicLayer,
             kwargs={'depth': 2, 'num_heads': 3, 'window_size': 7, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None,
-                    'drop': 0., 'attn_drop': 0., 'path_drop': [0.0, 0.0181818176060915], 'downsample': True},
-            input_shape=[2, 3136, 96],
+                    'drop': 0., 'attn_drop': 0., 'path_drop': [0.0, 0.0181818176060915]},
+            input_shape=[2, 56, 56, 96],
             input_dtype='float32',
-            expected_output_shape=[None, 784, 192],
-            expected_output_dtype='float32'
-        )
-        testing_utils.layer_test(
-            BasicLayer,
-            kwargs={'depth': 2, 'num_heads': 3, 'window_size': 7, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None,
-                    'drop': 0., 'attn_drop': 0., 'path_drop': [0.0, 0.0181818176060915], 'downsample': False},
-            input_shape=[2, 3136, 96],
-            input_dtype='float32',
-            expected_output_shape=[None, 3136, 96],
+            expected_output_shape=[None, 56, 56, 96],
             expected_output_dtype='float32'
         )
 

@@ -1,20 +1,22 @@
 import numpy as np
 import tensorflow as tf
 from keras import layers
+from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfswin.drop import DropPath
 from tfswin.mlp import MLP
 from tfswin.norm import LayerNorm
 from tfswin.winatt import WindowAttention
+from tfswin.window import window_partition, window_reverse
 
 
 @register_keras_serializable(package='TFSwin')
 class SwinBlock(layers.Layer):
-    def __init__(self, num_heads, window_size=7, shift_size=0, mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0.,
-                 attn_drop=0., path_drop=0., **kwargs):
+    def __init__(self, num_heads, window_size=7, shift_size=0, mlp_ratio=4., qkv_bias=True,
+                 qk_scale=None, drop=0., attn_drop=0., path_drop=0., **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=3)
+        self.input_spec = [layers.InputSpec(ndim=4), layers.InputSpec(ndim=5)]
 
         self.num_heads = num_heads
         self.window_size = window_size
@@ -26,34 +28,17 @@ class SwinBlock(layers.Layer):
         self.attn_drop = attn_drop
         self.path_drop = path_drop
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        # noinspection PyAttributeOutsideInit
-        self.length, self.channels = input_shape[1:]
-        if None in {self.length, self.channels}:
-            raise ValueError('Length and channel dimensions of the inputs should be defined. Found `None`.')
-        self.input_spec = layers.InputSpec(ndim=3, axes={1: self.length, 2: self.channels})
-
-        # noinspection PyAttributeOutsideInit
-        self.size = int(self.length ** 0.5)
-        if self.size ** 2 != self.length:
-            raise ValueError('Height and width of the inputs should be equal.')
-
-        self._shift_size = self.shift_size
-        if self.size <= self.window_size:
-            # noinspection PyAttributeOutsideInit
-            self._shift_size = 0
-            self.window_size = self.size
-        if not 0 <= self._shift_size < self.window_size:
+        if not 0 <= self.shift_size < self.window_size:
             raise ValueError('Shift size must be in range [0; window_size).')
 
+    @shape_type_conversion
+    def build(self, input_shape):
         # noinspection PyAttributeOutsideInit
         self.norm1 = LayerNorm(name='norm1')
 
         # noinspection PyAttributeOutsideInit
         self.attn = WindowAttention(window_size=self.window_size, num_heads=self.num_heads, qkv_bias=self.qkv_bias,
-                                    qk_scale=self.qk_scale, attn_mask=bool(self._shift_size), attn_drop=self.attn_drop,
-                                    proj_drop=self.drop, name='attn')
+                                    qk_scale=self.qk_scale, attn_drop=self.attn_drop, proj_drop=self.drop, name='attn')
 
         # noinspection PyAttributeOutsideInit
         self.drop_path = DropPath(self.path_drop)
@@ -66,51 +51,50 @@ class SwinBlock(layers.Layer):
 
         super().build(input_shape)
 
-    def attn_mask(self):
-        img_mask = np.zeros([1, self.size, self.size, 1], 'float32')
-        h_slices = (slice(0, -self.window_size), slice(-self.window_size, -self._shift_size),
-                    slice(-self._shift_size, None))
-        w_slices = (slice(0, -self.window_size), slice(-self.window_size, -self._shift_size),
-                    slice(-self._shift_size, None))
-        cnt = 0
-        for h in h_slices:
-            for w in w_slices:
-                img_mask[:, h, w, :] = cnt
-                cnt += 1
-
-        mask_windows = window_partition(img_mask, self.window_size, 'float32')[..., 0]
-        attn_mask = mask_windows[:, None] - mask_windows[:, :, None]
-        attn_mask = tf.where(attn_mask == 0., 0., -100.)
-        attn_mask = tf.cast(attn_mask, self.compute_dtype)
-
-        return attn_mask
-
     def call(self, inputs, *args, **kwargs):
+        inputs, mask = inputs
+        height, width = tf.unstack(tf.shape(inputs)[1:3])
+
+        min_size = tf.minimum(height, width)
+        shift_size, window_size = smart_cond(
+            tf.less_equal(min_size, self.window_size),
+            lambda: (0, min_size),
+            lambda: (self.shift_size, self.window_size))
+        with_shift = tf.greater(shift_size, 0)
+
         outputs = self.norm1(inputs)
-        outputs = tf.reshape(outputs, [-1, self.size, self.size, self.channels])
+
+        h_pad = (self.window_size - height % self.window_size) % self.window_size
+        w_pad = (self.window_size - width % self.window_size) % self.window_size
+        paddings = [[0, 0], [0, h_pad], [0, w_pad], [0, 0]]
+        outputs = tf.pad(outputs, paddings)
+        padded_height, padded_width = height + h_pad, width + w_pad
 
         # Cyclic shift
-        if self._shift_size > 0:
-            outputs = tf.roll(outputs, [-self._shift_size, -self._shift_size], [1, 2])
+        outputs = smart_cond(
+            with_shift,
+            lambda: tf.roll(outputs, [-shift_size, -shift_size], [1, 2]),
+            lambda: tf.identity(outputs))
 
         # Partition windows
-        outputs = window_partition(outputs, self.window_size, self.compute_dtype)
+        outputs = window_partition(outputs, padded_height, padded_width, window_size, self.compute_dtype)
 
         # W-MSA/SW-MSA
-        if self._shift_size:
-            outputs = self.attn([outputs, self.attn_mask()])
-        else:
-            outputs = self.attn(outputs)
+        outputs = self.attn([outputs, mask, with_shift])
 
         # Merge windows
-        outputs = window_reverse(outputs, self.size, self.compute_dtype)
+        outputs = window_reverse(outputs, padded_height, padded_width, window_size, self.compute_dtype)
 
         # Reverse cyclic shift
-        if self._shift_size > 0:
-            outputs = tf.roll(outputs, [self._shift_size, self._shift_size], [1, 2])
+        outputs = smart_cond(
+            with_shift,
+            lambda: tf.roll(outputs, [shift_size, shift_size], [1, 2]),
+            lambda: tf.identity(outputs)
+        )
+
+        outputs = outputs[:, :height, :width, ...]
 
         # FFN
-        outputs = tf.reshape(outputs, [-1, self.length, self.channels])
         outputs = inputs + self.drop_path(outputs)
         outputs += self.drop_path(self.mlp(self.norm2(outputs)))
 
@@ -118,7 +102,7 @@ class SwinBlock(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape
+        return input_shape[0]
 
     def get_config(self):
         config = super().get_config()
@@ -135,51 +119,3 @@ class SwinBlock(layers.Layer):
         })
 
         return config
-
-
-def window_partition(inputs, window_size, dtype=None, name=None):
-    with tf.name_scope(name or 'window_partition'):
-        inputs = tf.convert_to_tensor(inputs, dtype)
-
-        if 4 != inputs.shape.rank:
-            raise ValueError('Expecting inputs rank to be 4.')
-
-        if None in set(inputs.shape[1:]):
-            raise ValueError('Height, width and channel dimensions of the inputs should be defined. Found `None`.')
-
-        height, width, channels = inputs.shape[1:]
-
-        if height != width:
-            raise ValueError('Height and width of the inputs should be equal.')
-        num_windows = height // window_size
-
-        outputs = tf.reshape(inputs, [-1, num_windows, window_size, num_windows, window_size, channels])
-        outputs = tf.transpose(outputs, [0, 1, 3, 2, 4, 5])
-        outputs = tf.reshape(outputs, [-1, window_size ** 2, channels])
-
-        return outputs
-
-
-def window_reverse(inputs, size, dtype=None, name=None):
-    with tf.name_scope(name or 'window_reverse'):
-        inputs = tf.convert_to_tensor(inputs, dtype)
-
-        if 3 != inputs.shape.rank:
-            raise ValueError('Expecting inputs rank to be 3.')
-
-        if None in set(inputs.shape[1:]):
-            raise ValueError('Length and channel dimensions of the inputs should be defined. Found `None`.')
-
-        length, channels = inputs.shape[1:]
-
-        window_size = int(length ** 0.5)
-        if window_size ** 2 != length:
-            raise ValueError('Length should be equal to window size ^ 2.')
-
-        num_windows = size // window_size
-
-        outputs = tf.reshape(inputs, [-1, num_windows, num_windows, window_size, window_size, channels])
-        outputs = tf.transpose(outputs, [0, 1, 3, 2, 4, 5])
-        outputs = tf.reshape(outputs, [-1, size, size, channels])
-
-        return outputs

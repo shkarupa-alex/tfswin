@@ -7,7 +7,7 @@ from keras.utils.tf_utils import shape_type_conversion
 class MLP(layers.Layer):
     def __init__(self, ratio, dropout, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=3)
+        self.input_spec = layers.InputSpec(ndim=4)
 
         self.ratio = ratio
         self.dropout = dropout
@@ -17,7 +17,7 @@ class MLP(layers.Layer):
         channels = input_shape[-1]
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-        self.input_spec = layers.InputSpec(ndim=3, axes={-1: channels})
+        self.input_spec = layers.InputSpec(ndim=4, axes={-1: channels})
 
         # noinspection PyAttributeOutsideInit
         self.fc1 = layers.Dense(int(channels * self.ratio), name='fc1')
