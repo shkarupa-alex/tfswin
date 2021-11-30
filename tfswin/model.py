@@ -9,7 +9,7 @@ from tfswin.embed import PatchEmbedding
 from tfswin.merge import PatchMerging
 from tfswin.norm import LayerNorm
 
-BASE_URL = 'https://github.com/shkarupa-alex/tfswin/releases/download/1.0.0/swin_{}.h5'
+BASE_URL = 'https://github.com/shkarupa-alex/tfswin/releases/download/2.0.0/swin_{}.h5'
 WEIGHT_URLS = {
     'swin_tiny_224': BASE_URL.format('tiny_patch4_window7_224'),
     'swin_small_224': BASE_URL.format('small_patch4_window7_224'),
@@ -19,12 +19,12 @@ WEIGHT_URLS = {
     'swin_large_384': BASE_URL.format('large_patch4_window12_384_22k')
 }
 WEIGHT_HASHES = {
-    'swin_tiny_224': 'd4978388fed2c48d3e141ff8bfadfd402626d6e405d5a89aa146cd2dd6bef04f',
-    'swin_small_224': 'd4dc852d32c00762f0ba5c6b33d3a08670c3aa3377c5d10104d505260070967e',
-    'swin_base_224': 'b68200eb707302e471242da86fd5a9d3b84d0c9e30698bd193b775207b5100eb',
-    'swin_base_384': '48dd1a39217ac26a7c88ebe1212714812f15db6ca97ec09bed0ac85cbdf930f1',
-    'swin_large_224': '8910d7390d275a06a4c1a65ab458b089f72c431351ccfec94c296f18cbcdd714',
-    'swin_large_384': 'a04eb046fd5412a1f4339478e625b8f691d9811340a98b7675295fb7d1480c77'
+    'swin_tiny_224': '3e69a3b2777124a808068112916ce5ebf72c092d837deebf2753d8ae33efb866',
+    'swin_small_224': '5f1bd9dea944e3e488d0bcdd0876d7cad43a60e259ea2de353c19defed91c7f5',
+    'swin_base_224': 'e0907a540a4a7e1ea0a20af296c9bb0faa7f8608cd337e64b431b9a396a6e7a5',
+    'swin_base_384': '1b67c23f875d2a491d6b0077707230866f56edaa07cc3f3fd513cadabb0217d1',
+    'swin_large_224': 'd090521b27ff6beb547dd7e16a1624094221c4b512791218e0fddb0bbfa9eaf2',
+    'swin_large_384': 'dc41cca59ccc636067a335b1b0bf38a69af136019aa4213946b913441eb75e08'
 }
 
 

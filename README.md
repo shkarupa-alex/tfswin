@@ -4,6 +4,8 @@ Keras (TensorFlow v2) reimplementation of **Swin Transformer** model.
 
 Based on [Official Pytorch implementation](https://github.com/microsoft/Swin-Transformer).
 
+Supports variable-shape inference.
+
 ## Examples
 
 Default usage (without preprocessing):
