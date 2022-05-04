@@ -31,10 +31,11 @@ class DropPath(layers.Layer):
         keep = 1.0 - self.rate
         batch = tf.shape(inputs)[0]
         shape = [batch] + [1] * (inputs.shape.rank - 1)
-        noise = tf.random.uniform(shape, dtype=inputs.dtype)
-        mask = tf.floor(keep + noise)
 
-        outputs = (inputs / keep) * mask
+        random = tf.random.uniform(shape, dtype=self.compute_dtype) <= keep
+        random = tf.cast(random, self.compute_dtype) / keep
+
+        outputs = inputs * random
 
         return outputs
 

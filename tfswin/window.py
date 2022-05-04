@@ -12,10 +12,10 @@ def window_partition(inputs, height, width, window_size, dtype=None, name=None):
         if channels is None:
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
-        height_windows = height // window_size
-        width_windows = width // window_size
+        windows_height = height // window_size
+        windows_width = width // window_size
 
-        outputs = tf.reshape(inputs, [-1, height_windows, window_size, width_windows, window_size, channels])
+        outputs = tf.reshape(inputs, [-1, windows_height, window_size, windows_width, window_size, channels])
         outputs = tf.transpose(outputs, [0, 1, 3, 2, 4, 5])
         outputs = tf.reshape(outputs, [-1, window_size ** 2, channels])
 
@@ -33,10 +33,10 @@ def window_reverse(inputs, height, width, window_size, dtype=None, name=None):
         if channels is None:
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
-        height_windows = height // window_size
-        width_windows = width // window_size
+        windows_height = height // window_size
+        windows_width = width // window_size
 
-        outputs = tf.reshape(inputs, [-1, height_windows, width_windows, window_size, window_size, channels])
+        outputs = tf.reshape(inputs, [-1, windows_height, windows_width, window_size, window_size, channels])
         outputs = tf.transpose(outputs, [0, 1, 3, 2, 4, 5])
         outputs = tf.reshape(outputs, [-1, height, width, channels])
 

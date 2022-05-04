@@ -12,10 +12,6 @@ class PatchMerging(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
-        self.length = None
-        self.channels = None
-        self.size = None
-
     @shape_type_conversion
     def build(self, input_shape):
         # noinspection PyAttributeOutsideInit
@@ -49,7 +45,7 @@ class PatchMerging(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        out_height = None if input_shape[1] is None else math.ceil(input_shape[1] / 2)
-        out_width = None if input_shape[2] is None else math.ceil(input_shape[2] / 2)
+        def _scale(value):
+            return None if value is None else math.ceil(value / 2)
 
-        return [input_shape[0], out_height, out_width, self.channels * 2]
+        return input_shape[0], _scale(input_shape[1]), _scale(input_shape[2]), self.channels * 2
