@@ -19,8 +19,8 @@ WEIGHT_URLS = {
     'swin_large_384': BASE_URL.format('2.0.0', 'large_patch4_window12_384_22k')
 }
 WEIGHT_HASHES = {
-    'swin_tiny_224': '3e69a3b2777124a808068112916ce5ebf72c092d837deebf2753d8ae33efb866',
-    'swin_small_224': '5f1bd9dea944e3e488d0bcdd0876d7cad43a60e259ea2de353c19defed91c7f5',
+    'swin_tiny_224': '5ab5da80010db6a1689b287912c2047721c6239b285d524ce7b4cc65716cee15',
+    'swin_small_224': '07cf1471ba450587ddd201c4a5cca291b0ff4a7e976c30dd72b8360206c9a9a7',
     'swin_base_224': 'e0907a540a4a7e1ea0a20af296c9bb0faa7f8608cd337e64b431b9a396a6e7a5',
     'swin_base_384': '1b67c23f875d2a491d6b0077707230866f56edaa07cc3f3fd513cadabb0217d1',
     'swin_large_224': 'd090521b27ff6beb547dd7e16a1624094221c4b512791218e0fddb0bbfa9eaf2',
