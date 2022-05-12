@@ -5,14 +5,14 @@ import tfswin
 import torch
 from keras.utils.data_utils import get_file
 
-BASE_URL = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_{}.pth'
+BASE_URL = 'https://github.com/SwinTransformer/storage/releases/download/v{}/{}.pth'
 CHECKPOINTS = {
-    'tiny_224': BASE_URL.format('tiny_patch4_window7_224'),
-    'small_224': BASE_URL.format('small_patch4_window7_224'),
-    'base_224': BASE_URL.format('base_patch4_window7_224_22k'),
-    'base_384': BASE_URL.format('base_patch4_window12_384_22k'),
-    'large_224': BASE_URL.format('large_patch4_window7_224_22k'),
-    'large_384': BASE_URL.format('large_patch4_window12_384_22k')
+    'tiny_224': BASE_URL.format('1.0.8', 'swin_tiny_patch4_window7_224_22k'),
+    'small_224': BASE_URL.format('1.0.8', 'swin_small_patch4_window7_224_22k'),
+    'base_224': BASE_URL.format('1.0.0', 'swin_base_patch4_window7_224_22k'),
+    'base_384': BASE_URL.format('1.0.0', 'swin_base_patch4_window12_384_22k'),
+    'large_224': BASE_URL.format('1.0.0', 'swin_large_patch4_window7_224_22k'),
+    'large_384': BASE_URL.format('1.0.0', 'swin_large_patch4_window12_384_22k')
 }
 TF_MODELS = {
     'tiny_224': tfswin.SwinTransformerTiny224,

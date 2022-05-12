@@ -9,14 +9,14 @@ from tfswin.embed import PatchEmbedding
 from tfswin.merge import PatchMerging
 from tfswin.norm import LayerNorm
 
-BASE_URL = 'https://github.com/shkarupa-alex/tfswin/releases/download/2.0.0/swin_{}.h5'
+BASE_URL = 'https://github.com/shkarupa-alex/tfswin/releases/download/{}/swin_{}.h5'
 WEIGHT_URLS = {
-    'swin_tiny_224': BASE_URL.format('tiny_patch4_window7_224'),
-    'swin_small_224': BASE_URL.format('small_patch4_window7_224'),
-    'swin_base_224': BASE_URL.format('base_patch4_window7_224_22k'),
-    'swin_base_384': BASE_URL.format('base_patch4_window12_384_22k'),
-    'swin_large_224': BASE_URL.format('large_patch4_window7_224_22k'),
-    'swin_large_384': BASE_URL.format('large_patch4_window12_384_22k')
+    'swin_tiny_224': BASE_URL.format('3.0.0', 'tiny_patch4_window7_224'),
+    'swin_small_224': BASE_URL.format('3.0.0', 'small_patch4_window7_224'),
+    'swin_base_224': BASE_URL.format('2.0.0', 'base_patch4_window7_224_22k'),
+    'swin_base_384': BASE_URL.format('2.0.0', 'base_patch4_window12_384_22k'),
+    'swin_large_224': BASE_URL.format('2.0.0', 'large_patch4_window7_224_22k'),
+    'swin_large_384': BASE_URL.format('2.0.0', 'large_patch4_window12_384_22k')
 }
 WEIGHT_HASHES = {
     'swin_tiny_224': '3e69a3b2777124a808068112916ce5ebf72c092d837deebf2753d8ae33efb866',
@@ -124,8 +124,8 @@ def SwinTransformer(
         not_last = i != len(depths) - 1
 
         x = BasicLayer(depth=depths[i], num_heads=num_heads[i],
-                          window_size=window_size, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                          drop=drop_rate, attn_drop=attn_drop, path_drop=path_drop, name=f'layers.{i}')(x)
+                       window_size=window_size, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
+                       drop=drop_rate, attn_drop=attn_drop, path_drop=path_drop, name=f'layers.{i}')(x)
         if not_last:
             x = PatchMerging(name=f'layers.{i}/downsample')(x)
 
@@ -176,37 +176,38 @@ def SwinTransformer(
 
 
 def SwinTransformerTiny224(model_name='swin_tiny_224', pretrain_size=224, window_size=7, embed_dim=96,
-                           depths=(2, 2, 6, 2), num_heads=(3, 6, 12, 24), path_drop=0.2, weights='imagenet', **kwargs):
+                           depths=(2, 2, 6, 2), num_heads=(3, 6, 12, 24), path_drop=0.2, weights='imagenet',
+                           classes=21841, **kwargs):
     return SwinTransformer(model_name=model_name, pretrain_size=pretrain_size, window_size=window_size,
                            embed_dim=embed_dim, depths=depths, num_heads=num_heads, path_drop=path_drop,
-                           weights=weights, **kwargs)
+                           weights=weights, classes=classes, **kwargs)
 
 
 def SwinTransformerSmall224(model_name='swin_small_224', pretrain_size=224, window_size=7, embed_dim=96,
                             depths=(2, 2, 18, 2), num_heads=(3, 6, 12, 24), path_drop=0.3, weights='imagenet',
-                            **kwargs):
+                            classes=21841, **kwargs):
     return SwinTransformer(model_name=model_name, pretrain_size=pretrain_size, window_size=window_size,
                            embed_dim=embed_dim, depths=depths, num_heads=num_heads, path_drop=path_drop,
-                           weights=weights, **kwargs)
+                           weights=weights, classes=classes, **kwargs)
 
 
 def SwinTransformerBase224(model_name='swin_base_224', pretrain_size=224, window_size=7, embed_dim=128,
-                           depths=(2, 2, 18, 2), num_heads=(4, 8, 16, 32), path_drop=0.5, classes=21841,
-                           weights='imagenet', **kwargs):
+                           depths=(2, 2, 18, 2), num_heads=(4, 8, 16, 32), path_drop=0.5, weights='imagenet',
+                           classes=21841, **kwargs):
     return SwinTransformer(model_name=model_name, pretrain_size=pretrain_size, window_size=window_size,
                            embed_dim=embed_dim, depths=depths, num_heads=num_heads, path_drop=path_drop,
                            weights=weights, classes=classes, **kwargs)
 
 
 def SwinTransformerBase384(model_name='swin_base_384', pretrain_size=384, window_size=12, embed_dim=128,
-                           depths=(2, 2, 18, 2), num_heads=(4, 8, 16, 32), classes=21841, weights='imagenet', **kwargs):
+                           depths=(2, 2, 18, 2), num_heads=(4, 8, 16, 32), weights='imagenet', classes=21841, **kwargs):
     return SwinTransformer(model_name=model_name, pretrain_size=pretrain_size, window_size=window_size,
                            embed_dim=embed_dim, depths=depths, num_heads=num_heads, weights=weights, classes=classes,
                            **kwargs)
 
 
 def SwinTransformerLarge224(model_name='swin_large_224', pretrain_size=224, window_size=7, embed_dim=192,
-                            depths=(2, 2, 18, 2), num_heads=(6, 12, 24, 48), classes=21841, weights='imagenet',
+                            depths=(2, 2, 18, 2), num_heads=(6, 12, 24, 48), weights='imagenet', classes=21841,
                             **kwargs):
     return SwinTransformer(model_name=model_name, pretrain_size=pretrain_size, window_size=window_size,
                            embed_dim=embed_dim, depths=depths, num_heads=num_heads, weights=weights, classes=classes,
@@ -214,7 +215,7 @@ def SwinTransformerLarge224(model_name='swin_large_224', pretrain_size=224, wind
 
 
 def SwinTransformerLarge384(model_name='swin_large_384', pretrain_size=384, window_size=12, embed_dim=192,
-                            depths=(2, 2, 18, 2), num_heads=(6, 12, 24, 48), classes=21841, weights='imagenet',
+                            depths=(2, 2, 18, 2), num_heads=(6, 12, 24, 48), weights='imagenet', classes=21841,
                             **kwargs):
     return SwinTransformer(model_name=model_name, pretrain_size=pretrain_size, window_size=window_size,
                            embed_dim=embed_dim, depths=depths, num_heads=num_heads, weights=weights, classes=classes,
