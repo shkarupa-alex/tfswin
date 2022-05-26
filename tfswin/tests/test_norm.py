@@ -1,12 +1,12 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from tfswin.norm import LayerNorm
 
 
-@keras_parameterized.run_all_keras_modes
-class TestLayerNorm(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestLayerNorm(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             LayerNorm,
             kwargs={},
             input_shape=[2, 16, 16, 3],
@@ -14,7 +14,7 @@ class TestLayerNorm(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 16, 3],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             LayerNorm,
             kwargs={},
             input_shape=[2, 16, 3],
