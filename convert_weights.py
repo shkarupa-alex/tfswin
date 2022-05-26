@@ -5,22 +5,36 @@ import tfswin
 import torch
 from keras.utils.data_utils import get_file
 
-BASE_URL = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_{}.pth'
+BASE_URL = 'https://github.com/SwinTransformer/storage/releases/download/v{}/{}.pth'
 CHECKPOINTS = {
-    'tiny_224': BASE_URL.format('tiny_patch4_window7_224'),
-    'small_224': BASE_URL.format('small_patch4_window7_224'),
-    'base_224': BASE_URL.format('base_patch4_window7_224_22k'),
-    'base_384': BASE_URL.format('base_patch4_window12_384_22k'),
-    'large_224': BASE_URL.format('large_patch4_window7_224_22k'),
-    'large_384': BASE_URL.format('large_patch4_window12_384_22k')
+    'v1_tiny_224': BASE_URL.format('1.0.8', 'swin_tiny_patch4_window7_224_22k'),
+    'v1_small_224': BASE_URL.format('1.0.8', 'swin_small_patch4_window7_224_22k'),
+    'v1_base_224': BASE_URL.format('1.0.0', 'swin_base_patch4_window7_224_22k'),
+    'v1_base_384': BASE_URL.format('1.0.0', 'swin_base_patch4_window12_384_22k'),
+    'v1_large_224': BASE_URL.format('1.0.0', 'swin_large_patch4_window7_224_22k'),
+    'v1_large_384': BASE_URL.format('1.0.0', 'swin_large_patch4_window12_384_22k'),
+
+    'v2_tiny_256': BASE_URL.format('2.0.0', 'swinv2_tiny_patch4_window16_256'),
+    'v2_small_256': BASE_URL.format('2.0.0', 'swinv2_small_patch4_window16_256'),
+    'v2_base_256': BASE_URL.format('2.0.0', 'swinv2_base_patch4_window12to16_192to256_22kto1k_ft'),
+    'v2_base_384': BASE_URL.format('2.0.0', 'swinv2_base_patch4_window12to24_192to384_22kto1k_ft'),
+    'v2_large_256': BASE_URL.format('2.0.0', 'swinv2_large_patch4_window12to16_192to256_22kto1k_ft'),
+    'v2_large_384': BASE_URL.format('2.0.0', 'swinv2_large_patch4_window12to24_192to384_22kto1k_ft')
 }
 TF_MODELS = {
-    'tiny_224': tfswin.SwinTransformerTiny224,
-    'small_224': tfswin.SwinTransformerSmall224,
-    'base_224': tfswin.SwinTransformerBase224,
-    'base_384': tfswin.SwinTransformerBase384,
-    'large_224': tfswin.SwinTransformerLarge224,
-    'large_384': tfswin.SwinTransformerLarge384
+    'v1_tiny_224': tfswin.SwinTransformerTiny224,
+    'v1_small_224': tfswin.SwinTransformerSmall224,
+    'v1_base_224': tfswin.SwinTransformerBase224,
+    'v1_base_384': tfswin.SwinTransformerBase384,
+    'v1_large_224': tfswin.SwinTransformerLarge224,
+    'v1_large_384': tfswin.SwinTransformerLarge384,
+
+    'v2_tiny_256': tfswin.SwinTransformerV2Tiny256,
+    'v2_small_256': tfswin.SwinTransformerV2Small256,
+    'v2_base_256': tfswin.SwinTransformerV2Base256,
+    'v2_base_384': tfswin.SwinTransformerV2Base384,
+    'v2_large_256': tfswin.SwinTransformerV2Large256,
+    'v2_large_384': tfswin.SwinTransformerV2Large384
 }
 
 

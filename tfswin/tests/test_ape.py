@@ -1,12 +1,12 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from tfswin.ape import AbsoluteEmbedding
 
 
-@keras_parameterized.run_all_keras_modes
-class TestAbsoluteEmbedding(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestAbsoluteEmbedding(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AbsoluteEmbedding,
             kwargs={'pretrain_size': 56},
             input_shape=[2, 56, 56, 3],
@@ -14,7 +14,7 @@ class TestAbsoluteEmbedding(keras_parameterized.TestCase):
             expected_output_shape=[None, 56, 56, 3],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AbsoluteEmbedding,
             kwargs={'pretrain_size': 56},
             input_shape=[2, 112, 112, 3],

@@ -1,9 +1,10 @@
+import numpy as np
 import tensorflow as tf
 import tfswin
 from absl.testing import parameterized
-from keras import preprocessing
+from keras import layers, models
 from keras.applications import imagenet_utils
-from keras.utils import data_utils
+from keras.utils import data_utils, image_utils
 
 MODEL_LIST = [
     (tfswin.SwinTransformerTiny224, 224, 768),
@@ -12,6 +13,12 @@ MODEL_LIST = [
     (tfswin.SwinTransformerBase384, 384, 1024),
     (tfswin.SwinTransformerLarge224, 224, 1536),
     (tfswin.SwinTransformerLarge384, 384, 1536),
+    (tfswin.SwinTransformerV2Tiny256, 256, 768),
+    (tfswin.SwinTransformerV2Small256, 256, 768),
+    (tfswin.SwinTransformerV2Base256, 256, 1024),
+    (tfswin.SwinTransformerV2Base384, 384, 1024),
+    (tfswin.SwinTransformerV2Large256, 256, 1536),
+    (tfswin.SwinTransformerV2Large384, 384, 1536),
 ]
 
 
@@ -65,8 +72,8 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
 
         test_image = data_utils.get_file(
             'elephant.jpg', 'https://storage.googleapis.com/tensorflow/keras-applications/tests/elephant.jpg')
-        image = preprocessing.image.load_img(test_image, target_size=(size, size), interpolation='bicubic')
-        image = preprocessing.image.img_to_array(image)[None, ...]
+        image = image_utils.load_img(test_image, target_size=(size, size), interpolation='bicubic')
+        image = image_utils.img_to_array(image)[None, ...]
 
         image_ = tfswin.preprocess_input(image)
         preds = model.predict(image_)
@@ -79,6 +86,19 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
         else:
             top_indices = preds[0].argsort()[-3:][::-1]
             self.assertIn(3674, top_indices)
+
+    @parameterized.parameters(*MODEL_LIST)
+    def test_application_backbone(self, app, size, _):
+        inputs = layers.Input(shape=(None, None, 3), dtype='uint8')
+        outputs = layers.Lambda(tfswin.preprocess_input)(inputs)
+        outputs = app(include_top=False)(outputs)
+        outputs = layers.Conv2D(4, 3, padding='same', activation='softmax')(outputs)
+        model = models.Model(inputs=inputs, outputs=outputs)
+
+        data = np.random.uniform(0., 255., size=(2, size * 2, size * 2, 3)).astype('uint8')
+        result = model.predict(data)
+
+        self.assertTupleEqual(result.shape, (2, size * 2 // 32, size * 2 // 32, 4))
 
 
 if __name__ == '__main__':

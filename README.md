@@ -1,6 +1,6 @@
 # tfswin
 
-Keras (TensorFlow v2) reimplementation of **Swin Transformer** model.
+Keras (TensorFlow v2) reimplementation of **Swin Transformer** and **Swin Transformer V2** models.
 
 Based on [Official Pytorch implementation](https://github.com/microsoft/Swin-Transformer).
 
@@ -12,6 +12,9 @@ Default usage (without preprocessing):
 
 ```python
 from tfswin import SwinTransformerTiny224  # + 5 other variants and input preprocessing
+# or 
+# from tfswin import SwinTransformerV2Tiny256  # + 5 other variants and input preprocessing
+
 
 model = SwinTransformerTiny224()  # by default will download imagenet[21k]-pretrained weights
 model.compile(...)
@@ -48,11 +51,11 @@ Performance improvements:
 - Layer normalization epsilon fixed at `1.001e-5`, inputs are casted to `float32` to use fused op implementation.
 - Some layers have been refactored to use faster TF operations.
 - A lot of reshapes have been removed. Most of the time internal representation is 4D-tensor.
-- Attention mask estimation moved to basic layer level.
+- Attention mask and relative index estimations moved to basic layer level.
 
 ## Variable shapes
 
-When using Swin models with shapes different from pretraining one, try to make height and width to be multiple
+When using Swin models with input shapes different from pretraining one, try to make height and width to be multiple
 of `32 * window_size`. Otherwise a lot of tensors will be padded, resulting in speed and (possibly) quality degradation.
 
 ## Evaluation
@@ -98,9 +101,19 @@ around `9.9e-5`. Maximum absolute difference among all layers is `3.5e-4`.
 ## Citation
 
 ```
-@article{liu2021Swin,
+@inproceedings{liu2021Swin,
   title={Swin Transformer: Hierarchical Vision Transformer using Shifted Windows},
   author={Liu, Ze and Lin, Yutong and Cao, Yue and Hu, Han and Wei, Yixuan and Zhang, Zheng and Lin, Stephen and Guo, Baining},
-  journal={arXiv preprint arXiv:2103.14030},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
   year={2021}
 }
+```
+
+```
+@inproceedings{liu2021swinv2,
+  title={Swin Transformer V2: Scaling Up Capacity and Resolution}, 
+  author={Ze Liu and Han Hu and Yutong Lin and Zhuliang Yao and Zhenda Xie and Yixuan Wei and Jia Ning and Yue Cao and Zheng Zhang and Li Dong and Furu Wei and Baining Guo},
+  booktitle={International Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year={2022}
+}
+```

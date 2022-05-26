@@ -8,13 +8,11 @@ from tfswin.norm import LayerNorm
 
 @register_keras_serializable(package='TFSwin')
 class PatchMerging(layers.Layer):
-    def __init__(self, **kwargs):
+    def __init__(self, swin_v2=False, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
-        self.length = None
-        self.channels = None
-        self.size = None
+        self.swin_v2 = swin_v2
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -42,14 +40,24 @@ class PatchMerging(layers.Layer):
         slice11 = outputs[:, 1::2, 1::2, :]  # B H/2 W/2 C
         outputs = tf.concat([slice00, slice10, slice01, slice11], axis=-1)
 
-        outputs = self.norm(outputs)
-        outputs = self.reduction(outputs)
+        if self.swin_v2:
+            outputs = self.reduction(outputs)
+            outputs = self.norm(outputs)
+        else:
+            outputs = self.norm(outputs)
+            outputs = self.reduction(outputs)
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        out_height = None if input_shape[1] is None else math.ceil(input_shape[1] / 2)
-        out_width = None if input_shape[2] is None else math.ceil(input_shape[2] / 2)
+        def _scale(value):
+            return None if value is None else math.ceil(value / 2)
 
-        return [input_shape[0], out_height, out_width, self.channels * 2]
+        return input_shape[0], _scale(input_shape[1]), _scale(input_shape[2]), self.channels * 2
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'swin_v2': self.swin_v2})
+
+        return config

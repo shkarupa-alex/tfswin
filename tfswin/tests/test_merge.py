@@ -1,22 +1,23 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from tfswin.merge import PatchMerging
 
 
-@keras_parameterized.run_all_keras_modes
-class TestPatchMerging(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestPatchMerging(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             PatchMerging,
-            kwargs={},
+            kwargs={'swin_v2': False},
             input_shape=[2, 12, 12, 4],
             input_dtype='float32',
             expected_output_shape=[None, 6, 6, 8],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+
+        test_utils.layer_test(
             PatchMerging,
-            kwargs={},
+            kwargs={'swin_v2': True},
             input_shape=[2, 11, 13, 4],
             input_dtype='float32',
             expected_output_shape=[None, 6, 7, 8],
