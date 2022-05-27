@@ -2,9 +2,9 @@
 
 Keras (TensorFlow v2) reimplementation of **Swin Transformer** and **Swin Transformer V2** models.
 
-Based on [Official Pytorch implementation](https://github.com/microsoft/Swin-Transformer).
-
-Supports variable-shape inference.
++ Based on [Official Pytorch implementation](https://github.com/microsoft/Swin-Transformer).
++ Supports variable-shape inference for downstream tasks.
++ Contains pretrained weights converted from official ones.
 
 ## Examples
 
@@ -12,6 +12,7 @@ Default usage (without preprocessing):
 
 ```python
 from tfswin import SwinTransformerTiny224  # + 5 other variants and input preprocessing
+
 # or 
 # from tfswin import SwinTransformerV2Tiny256  # + 5 other variants and input preprocessing
 
@@ -63,8 +64,7 @@ of `32 * window_size`. Otherwise a lot of tensors will be padded, resulting in s
 For correctness, `Tiny` and `Small` models (original and ported) tested
 with [ImageNet-v2 test set](https://www.tensorflow.org/datasets/catalog/imagenet_v2).
 
-Note, swin models are very sensitive to input preprocessing (bicubic resize with antialiasing in the original evaluation
-script).
+Note: Swin models are very sensitive to input preprocessing (bicubic resize in the original evaluation script).
 
 ```python
 import tensorflow as tf
@@ -73,9 +73,15 @@ from tfswin import SwinTransformerTiny224, preprocess_input
 
 
 def _prepare(example):
-    image = tf.image.resize(example['image'], (224, 224), method=tf.image.ResizeMethod.BICUBIC, antialias=True)
-    image = preprocess_input(image)
+    img_size = 256
+    
+    res_size = int((256 / 224) * img_size)
+    img_scale = 224 / 256
 
+    image = tf.image.resize(example['image'], (res_size, res_size), method=tf.image.ResizeMethod.BICUBIC)
+    image = tf.image.central_crop(image, img_scale)
+    image = preprocess_input(image)
+    
     return image, example['label']
 
 
@@ -90,10 +96,15 @@ history = model.evaluate(imagenet2)
 print(history)
 ```
 
-| name | original acc@1 | ported acc@1 | original acc@5 | ported acc@5 |
-| :---: | :---: | :---: | :---: | :---: |
-| Swin-T | 67.64 | 67.81 | 87.84 | 87.87 |
-| Swin-S | 70.66 | 70.80 | 89.34 | 89.49 |
+|   name    | original acc@1 | ported acc@1 | original acc@5 | ported acc@5 |
+|:---------:|:--------------:|:------------:|:--------------:|:------------:|
+| Swin-T V1 |     67.64      |    67.81     |     87.84      |    87.87     |
+| Swin-S V1 |     70.66      |    70.80     |     89.34      |    89.49     |
+| Swin-T V2 |     71.69      |    71.31     |     90.04      |    90.17     |
+| Swin-S V2 |     73.20      |    73.70     |     91.24      |    91.32     |
+
+Note: Swin V1 model were evaluated with ImageNet-1K weights which were replaced with ImageNet-21K weights in 3.0.0
+release.
 
 Meanwhile, all layers outputs have been compared with original. Most of them have maximum absolute difference
 around `9.9e-5`. Maximum absolute difference among all layers is `3.5e-4`.
