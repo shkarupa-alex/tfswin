@@ -73,8 +73,6 @@ class SwinBlock(layers.Layer):
             with_shift,
             lambda: tf.roll(outputs, [-shift_size, -shift_size], [1, 2]),
             lambda: tf.identity(outputs))
-        if tf.executing_eagerly():
-            pass
 
         # Partition windows
         outputs = window_partition(outputs, padded_height, padded_width, window_size, self.compute_dtype)
