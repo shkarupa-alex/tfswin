@@ -18,9 +18,9 @@ class TestPatchMerging(test_combinations.TestCase):
         test_utils.layer_test(
             PatchMerging,
             kwargs={'swin_v2': True},
-            input_shape=[2, 11, 13, 4],
+            input_shape=[2, 11, 13, 3],
             input_dtype='float32',
-            expected_output_shape=[None, 6, 7, 8],
+            expected_output_shape=[None, 6, 7, 6],
             expected_output_dtype='float32'
         )
 
