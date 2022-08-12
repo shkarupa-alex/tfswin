@@ -6,6 +6,12 @@ Keras (TensorFlow v2) reimplementation of **Swin Transformer** and **Swin Transf
 + Supports variable-shape inference for downstream tasks.
 + Contains pretrained weights converted from official ones.
 
+## Installation
+
+```bash
+pip install tfswin
+```
+
 ## Examples
 
 Default usage (without preprocessing):
@@ -72,16 +78,27 @@ import tensorflow_datasets as tfds
 from tfswin import SwinTransformerTiny224, preprocess_input
 
 
-def _prepare(example):
-    img_size = 256
-    
-    res_size = int((256 / 224) * img_size)
-    img_scale = 224 / 256
+def _prepare(example, input_size=224, crop_pct=0.875):
+    scale_size = tf.math.floor(input_size / crop_pct)
 
-    image = tf.image.resize(example['image'], (res_size, res_size), method=tf.image.ResizeMethod.BICUBIC)
-    image = tf.image.central_crop(image, img_scale)
+    image = example['image']
+
+    shape = tf.shape(image)[:2]
+    shape = tf.cast(shape, 'float32')
+    shape *= scale_size / tf.reduce_min(shape)
+    shape = tf.round(shape)
+    shape = tf.cast(shape, 'int32')
+
+    image = tf.image.resize(image, shape, method=tf.image.ResizeMethod.BICUBIC)
+    image = tf.round(image)
+    image = tf.clip_by_value(image, 0., 255.)
+    image = tf.cast(image, 'uint8')
+
+    pad_h, pad_w = tf.unstack((shape - input_size) // 2)
+    image = image[pad_h:pad_h + input_size, pad_w:pad_w + input_size]
+
     image = preprocess_input(image)
-    
+
     return image, example['label']
 
 
@@ -98,16 +115,18 @@ print(history)
 
 |   name    | original acc@1 | ported acc@1 | original acc@5 | ported acc@5 |
 |:---------:|:--------------:|:------------:|:--------------:|:------------:|
-| Swin-T V1 |     67.64      |    67.81     |     87.84      |    87.87     |
-| Swin-S V1 |     70.66      |    70.80     |     89.34      |    89.49     |
-| Swin-T V2 |     71.69      |    71.31     |     90.04      |    90.17     |
-| Swin-S V2 |     73.20      |    73.70     |     91.24      |    91.32     |
+| Swin-T V1 |     67.64      |  ~~67.81~~   |     87.84      |  ~~87.87~~   |
+| Swin-S V1 |     70.66      |  ~~70.80~~   |     89.34      |  ~~89.49~~   |
+| Swin-T V2 |     71.69      |    72.00     |     90.04      |    90.06     |
+| Swin-S V2 |     73.20      |    73.57     |     91.24      |    91.11     |
 
-Note: Swin V1 model were evaluated with ImageNet-1K weights which were replaced with ImageNet-21K weights in 3.0.0
-release.
+Note: Swin V1 model were evaluated with wrong preprocessing (distorted aspect ratio) and ImageNet-1K weights which were
+replaced with ImageNet-21K weights in 3.0.0 release.
 
-Meanwhile, all layers outputs have been compared with original. Most of them have maximum absolute difference
-around `9.9e-5`. Maximum absolute difference among all layers is `3.5e-4`.
+The most metric differences comes from input data preprocessing (decoding, interpolation).
+All layers outputs have been compared with original ones.
+Most of them have maximum absolute difference around `9.9e-5`.
+Maximum absolute difference among all layers is `3.5e-4`.
 
 ## Citation
 

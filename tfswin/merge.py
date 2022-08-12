@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
@@ -22,6 +23,14 @@ class PatchMerging(layers.Layer):
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
         self.input_spec = layers.InputSpec(ndim=4, axes={-1: self.channels})
 
+        # Channel permutation after space-to-depth
+        # Required due to unusual concatenation order in orignal version
+        perm = np.arange(self.channels * 4).reshape((4, -1))
+        perm[[1, 2]] = perm[[2, 1]]
+
+        # noinspection PyAttributeOutsideInit
+        self.perm = perm.ravel()
+
         # noinspection PyAttributeOutsideInit
         self.norm = LayerNorm(name='norm')
 
@@ -31,14 +40,17 @@ class PatchMerging(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        paddings = [[0, 0], [0, 1], [0, 1], [0, 0]]
-        outputs = tf.pad(inputs, paddings)
+        def _pad(value):
+            return None if value is None else value + value % 2
 
-        slice00 = outputs[:, 0:-1:2, 0:-1:2, :]  # B H/2 W/2 C
-        slice10 = outputs[:, 1::2, 0:-1:2, :]  # B H/2 W/2 C
-        slice01 = outputs[:, 0:-1:2, 1::2, :]  # B H/2 W/2 C
-        slice11 = outputs[:, 1::2, 1::2, :]  # B H/2 W/2 C
-        outputs = tf.concat([slice00, slice10, slice01, slice11], axis=-1)
+        height_width = tf.shape(inputs)[1:3]
+        hpad, wpad = tf.unstack(height_width % 2)
+        paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
+        outputs = tf.pad(inputs, paddings)
+        outputs.set_shape((inputs.shape[0], _pad(inputs.shape[1]), _pad(inputs.shape[2]), inputs.shape[3]))
+
+        outputs = tf.nn.space_to_depth(outputs, 2)
+        outputs = tf.gather(outputs, self.perm, batch_dims=-1)
 
         if self.swin_v2:
             outputs = self.reduction(outputs)
