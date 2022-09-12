@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
@@ -18,8 +17,7 @@ class PatchEmbedding(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         # noinspection PyAttributeOutsideInit
-        self.proj = layers.Conv2D(
-            self.embed_dim, kernel_size=self.patch_size, strides=self.patch_size, padding='same', name='proj')
+        self.proj = layers.Conv2D(self.embed_dim, kernel_size=self.patch_size, strides=self.patch_size, name='proj')
 
         if self.normalize:
             # noinspection PyAttributeOutsideInit
