@@ -124,8 +124,8 @@ class WindowAttention(layers.Layer):
         if self.swin_v2:
             scale = tf.minimum(self.scale, np.log(1. / .01))
             scale = tf.exp(scale)
-            q, _ = tf.linalg.normalize(q, axis=-1)
-            k, _ = tf.linalg.normalize(k, axis=-1)
+            q = tf.math.l2_normalize(q, axis=-1)
+            k = tf.math.l2_normalize(k, axis=-1)
         else:
             scale = self.scale
         q *= scale
