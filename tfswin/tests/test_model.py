@@ -56,7 +56,8 @@ class TestModelV1(test_combinations.TestCase):
 
     def test_var_shape(self):
         model = SwinTransformerTiny224(weights=None, include_top=False, input_shape=(None, None, 3))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
+        run_eagerly = test_utils.should_run_eagerly()
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=run_eagerly, jit_compile=not run_eagerly)
 
         images = np.random.random((10, 512, 384, 3)).astype('float32')
         labels = (np.random.random((10, 16, 12, 768)) + 0.5).astype('int32')
@@ -103,7 +104,8 @@ class TestModelV2(test_combinations.TestCase):
 
     def test_var_shape(self):
         model = SwinTransformerV2Tiny256(weights=None, include_top=False, input_shape=(None, None, 3))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
+        run_eagerly = test_utils.should_run_eagerly()
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=run_eagerly, jit_compile=not run_eagerly)
 
         images = np.random.random((10, 512, 384, 3)).astype('float32')
         labels = (np.random.random((10, 16, 12, 768)) + 0.5).astype('int32')
