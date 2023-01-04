@@ -4,6 +4,7 @@ from keras import initializers, layers
 from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
+from tfswin.window import window_partition_fused, window_reverse_fused
 
 
 @register_keras_serializable(package='TFSwin')
@@ -12,7 +13,7 @@ class WindowAttention(layers.Layer):
                  window_pretrain=0, swin_v2=False, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
-            layers.InputSpec(ndim=3), layers.InputSpec(ndim=0, dtype='int32'), layers.InputSpec(ndim=1, dtype='int32'),
+            layers.InputSpec(ndim=4), layers.InputSpec(ndim=0, dtype='int32'), layers.InputSpec(ndim=1, dtype='int32'),
             layers.InputSpec(ndim=5), layers.InputSpec(ndim=0, dtype='bool')]
 
         self.num_heads = num_heads
@@ -110,15 +111,20 @@ class WindowAttention(layers.Layer):
 
     def call(self, inputs, **kwargs):
         inputs, window_size, relative_index, attention_mask, with_mask = inputs
-        length = tf.shape(inputs)[1]
+        height, width = tf.unstack(tf.shape(inputs)[1:3])
+        length = window_size ** 2
 
         qkv = self.qkv(inputs)
         if self.swin_v2 and self.qkv_bias:
             k_bias = tf.zeros_like(self.v_bias, self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
-        qkv = tf.reshape(qkv, [-1, length, 3, self.num_heads, self.channels // self.num_heads])
-        qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
+
+        # QKV heads partition - fused with windows partitioning
+        # qkv = tf.reshape(qkv, [-1, length, 3, self.num_heads, self.channels // self.num_heads])
+        # qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
+
+        qkv = window_partition_fused(qkv, height, width, window_size, self.num_heads)
 
         q, k, v = tf.unstack(qkv, 3)
         if self.swin_v2:
@@ -138,7 +144,7 @@ class WindowAttention(layers.Layer):
             bias = tf.gather(relative_bias, relative_index) * 16.
         else:
             bias = tf.gather(self.relative_bias, relative_index)
-        bias = tf.reshape(bias, [window_size ** 2, window_size ** 2, -1])
+        bias = tf.reshape(bias, [length, length, -1])
         bias = tf.transpose(bias, perm=[2, 0, 1])
         attn = attn + bias[None]
 
@@ -150,8 +156,13 @@ class WindowAttention(layers.Layer):
         attn = tf.nn.softmax(attn)
         attn = self.drop_attn(attn)
 
-        outputs = tf.transpose(tf.matmul(attn, v), perm=[0, 2, 1, 3])
-        outputs = tf.reshape(outputs, [-1, length, self.channels])
+        outputs = tf.matmul(attn, v)
+
+        # V heads merge - fused with windows merging
+        # outputs = tf.transpose(outputs, perm=[0, 2, 1, 3])
+        # outputs = tf.reshape(outputs, [-1, length, self.channels])
+
+        outputs = window_reverse_fused(outputs, height, width, window_size, self.num_heads)
 
         outputs = self.proj(outputs)
         outputs = self.drop_proj(outputs)

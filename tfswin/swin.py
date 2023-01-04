@@ -7,7 +7,6 @@ from tfswin.drop import DropPath
 from tfswin.mlp import MLP
 from tfswin.norm import LayerNorm
 from tfswin.winatt import WindowAttention
-from tfswin.window import window_partition, window_reverse
 
 
 @register_keras_serializable(package='TFSwin')
@@ -74,14 +73,14 @@ class SwinBlock(layers.Layer):
             lambda: tf.roll(outputs, [-shift_size, -shift_size], [1, 2]),
             lambda: tf.identity(outputs))
 
-        # Partition windows
-        outputs = window_partition(outputs, padded_height, padded_width, window_size, self.compute_dtype)
+        # Partition windows - fused with qkv heads partitioning
+        # outputs = window_partition(outputs, padded_height, padded_width, window_size, self.compute_dtype)
 
         # W-MSA/SW-MSA
         outputs = self.attn([outputs, window_size, relative_index, attention_mask, with_shift])
 
-        # Merge windows
-        outputs = window_reverse(outputs, padded_height, padded_width, window_size, self.compute_dtype)
+        # Merge windows - fused with v heads merging
+        # outputs = window_reverse(outputs, padded_height, padded_width, window_size, self.compute_dtype)
 
         # Reverse cyclic shift
         outputs = smart_cond(
