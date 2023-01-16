@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 from keras import layers
-from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfswin.swin import SwinBlock
@@ -46,10 +45,9 @@ class BasicLayer(layers.Layer):
 
     def shift_window(self, height, width):
         min_size = tf.minimum(height, width)
-        shift_size, window_size = smart_cond(
-            tf.less_equal(min_size, self.window_size),
-            lambda: (0, min_size),
-            lambda: (self.shift_size, self.window_size))
+        with_shift = tf.greater(min_size, self.window_size)
+        shift_size = self.shift_size * tf.cast(with_shift, min_size.dtype)
+        window_size = tf.minimum(self.window_size, min_size)
 
         return shift_size, window_size
 
@@ -65,11 +63,11 @@ class BasicLayer(layers.Layer):
 
         return index
 
-    def attention_mask(self, height, width, window_size):
+    def attention_mask(self, height, width, shift_size, window_size):
         padded_height = tf.cast(tf.math.ceil(height / window_size), 'int32') * window_size
         padded_width = tf.cast(tf.math.ceil(width / window_size), 'int32') * window_size
 
-        last_repeats = [window_size - self.shift_size, self.shift_size]
+        last_repeats = [window_size - shift_size, shift_size]
 
         image_mask = np.arange(9, dtype='int32').reshape((3, 3))
         image_mask = tf.repeat(image_mask, [padded_height - window_size] + last_repeats, axis=1)
@@ -91,7 +89,7 @@ class BasicLayer(layers.Layer):
 
         shift_size, window_size = self.shift_window(height, width)
         relative_index = self.relative_index(window_size)
-        attention_mask = self.attention_mask(height, width, window_size)
+        attention_mask = self.attention_mask(height, width, shift_size, window_size)
 
         outputs = inputs
         for i, b in enumerate(self.blocks):

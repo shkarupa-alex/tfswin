@@ -148,6 +148,8 @@ class WindowAttention(layers.Layer):
         bias = tf.transpose(bias, perm=[2, 0, 1])
         attn = attn + bias[None]
 
+        # if tf.executing_eagerly():
+        #     print('\t', with_mask.numpy(), tf.reduce_mean(attention_mask).numpy())
         attn = smart_cond(
             with_mask,
             lambda: self.with_mask(attn, attention_mask, length),
