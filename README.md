@@ -62,8 +62,23 @@ Performance improvements:
 
 ## Variable shapes
 
+Swin Transformer receptive field is larger or equal to pretraining image size. Window reduction is used in image
+classification [V1](https://github.com/microsoft/Swin-Transformer/blob/main/models/swin_transformer.py#L206)
+and [V2](https://github.com/microsoft/Swin-Transformer/blob/main/models/swin_transformer_v2.py#L228) pipelines. E.g.:
+
+- SwinTransformerTiny224: last stage size is 7x7 with window size 7, no shift for last stage.
+- SwinTransformerLarge384: last stage size is 12x12 with window size 12, no shift for last stage.
+- SwinTransformerV2Tiny256: last stages sizes are 16x16 and 8x8 with window size 16 and 16->6, no shift for 2 last
+  stages.
+- SwinTransformerV2Large384: last stages sizes are 24x24 and 12x12 with window size 24 and 24->12, no shift for 2 last
+  stages.
+
+But there is no such trick in semantic segmentation
+[backbone](https://github.com/SwinTransformer/Swin-Transformer-Semantic-Segmentation/blob/main/mmseg/models/backbones/swin_transformer.py#L180).
+This reimplementation always applies window reduction conditioned on dynamic input height and width.
+
 When using Swin models with input shapes different from pretraining one, try to make height and width to be multiple
-of `32 * window_size`. Otherwise a lot of tensors will be padded, resulting in speed and (possibly) quality degradation.
+of `32 * window_size`. Otherwise a lot of tensors will be padded, resulting in speed degradation.
 
 ## Evaluation
 
