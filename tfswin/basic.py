@@ -35,9 +35,6 @@ class BasicLayer(layers.Layer):
         if not isinstance(self.path_drop, (list, tuple)):
             path_drop = [self.path_drop] * self.depth
 
-        shift_size = np.zeros(self.depth, 'int32')
-        shift_size[1::2] = self.shift_size
-
         # noinspection PyAttributeOutsideInit
         self.blocks = [
             SwinBlock(num_heads=self.num_heads, mlp_ratio=self.mlp_ratio, qkv_bias=self.qkv_bias,
