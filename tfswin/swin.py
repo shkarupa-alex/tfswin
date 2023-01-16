@@ -1,6 +1,5 @@
 import tensorflow as tf
 from keras import layers
-from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfswin.drop import DropPath
@@ -68,10 +67,7 @@ class SwinBlock(layers.Layer):
         padded_height, padded_width = height + h_pad, width + w_pad
 
         # Cyclic shift
-        outputs = smart_cond(
-            with_shift,
-            lambda: tf.roll(outputs, [-shift_size, -shift_size], [1, 2]),
-            lambda: tf.identity(outputs))
+        outputs = tf.roll(outputs, [-shift_size, -shift_size], [1, 2])
 
         # Partition windows - fused with qkv heads partitioning
         # outputs = window_partition(outputs, padded_height, padded_width, window_size, self.compute_dtype)
@@ -83,11 +79,7 @@ class SwinBlock(layers.Layer):
         # outputs = window_reverse(outputs, padded_height, padded_width, window_size, self.compute_dtype)
 
         # Reverse cyclic shift
-        outputs = smart_cond(
-            with_shift,
-            lambda: tf.roll(outputs, [shift_size, shift_size], [1, 2]),
-            lambda: tf.identity(outputs)
-        )
+        outputs = tf.roll(outputs, [shift_size, shift_size], [1, 2])
 
         outputs = outputs[:, :height, :width, ...]
 
