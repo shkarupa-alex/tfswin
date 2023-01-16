@@ -89,12 +89,14 @@ class BasicLayer(layers.Layer):
 
         shift_size, window_size = self.shift_window(height, width)
         relative_index = self.relative_index(window_size)
-        attention_mask = self.attention_mask(height, width, shift_size, window_size)
+        shift_mask = self.attention_mask(height, width, shift_size, window_size)
+        identity_mask = self.attention_mask(height, width, 0, window_size)
 
         outputs = inputs
         for i, b in enumerate(self.blocks):
             current_shift = shift_size if i % 2 else 0
-            outputs = b([outputs, current_shift, window_size, relative_index, attention_mask])
+            current_mask = shift_mask if i % 2 else identity_mask
+            outputs = b([outputs, current_shift, window_size, relative_index, current_mask])
 
         return outputs
 
