@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 from keras import initializers, layers
-from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfswin.window import window_partition_fused, window_reverse_fused
@@ -14,7 +13,7 @@ class WindowAttention(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4), layers.InputSpec(ndim=0, dtype='int32'), layers.InputSpec(ndim=1, dtype='int32'),
-            layers.InputSpec(ndim=5), layers.InputSpec(ndim=0, dtype='bool')]
+            layers.InputSpec(ndim=5)]
 
         self.num_heads = num_heads
         self.qkv_bias = qkv_bias
@@ -110,7 +109,7 @@ class WindowAttention(layers.Layer):
         return attn
 
     def call(self, inputs, **kwargs):
-        inputs, window_size, relative_index, attention_mask, with_mask = inputs
+        inputs, window_size, relative_index, attention_mask = inputs
         height, width = tf.unstack(tf.shape(inputs)[1:3])
         length = window_size ** 2
 
@@ -148,10 +147,7 @@ class WindowAttention(layers.Layer):
         bias = tf.transpose(bias, perm=[2, 0, 1])
         attn = attn + bias[None]
 
-        attn = smart_cond(
-            with_mask,
-            lambda: self.with_mask(attn, attention_mask, length),
-            lambda: tf.identity(attn))
+        attn = self.with_mask(attn, attention_mask, length)
 
         attn = tf.nn.softmax(attn)
         attn = self.drop_attn(attn)

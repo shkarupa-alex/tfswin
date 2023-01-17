@@ -1,6 +1,5 @@
 import tensorflow as tf
 from keras import layers
-from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfswin.drop import DropPath
@@ -54,8 +53,6 @@ class SwinBlock(layers.Layer):
         inputs, shift_size, window_size, relative_index, attention_mask = inputs
         height, width = tf.unstack(tf.shape(inputs)[1:3])
 
-        with_shift = tf.greater(shift_size, 0)
-
         if self.swin_v2:
             outputs = inputs
         else:
@@ -65,31 +62,24 @@ class SwinBlock(layers.Layer):
         w_pad = (window_size - width % window_size) % window_size
         paddings = [[0, 0], [0, h_pad], [0, w_pad], [0, 0]]
         outputs = tf.pad(outputs, paddings)
-        padded_height, padded_width = height + h_pad, width + w_pad
 
         # Cyclic shift
-        outputs = smart_cond(
-            with_shift,
-            lambda: tf.roll(outputs, [-shift_size, -shift_size], [1, 2]),
-            lambda: tf.identity(outputs))
+        outputs = tf.roll(outputs, [-shift_size, -shift_size], [1, 2])
 
         # Partition windows - fused with qkv heads partitioning
+        # padded_height, padded_width = height + h_pad, width + w_pad
         # outputs = window_partition(outputs, padded_height, padded_width, window_size, self.compute_dtype)
 
         # W-MSA/SW-MSA
-        outputs = self.attn([outputs, window_size, relative_index, attention_mask, with_shift])
+        outputs = self.attn([outputs, window_size, relative_index, attention_mask])
 
         # Merge windows - fused with v heads merging
         # outputs = window_reverse(outputs, padded_height, padded_width, window_size, self.compute_dtype)
 
         # Reverse cyclic shift
-        outputs = smart_cond(
-            with_shift,
-            lambda: tf.roll(outputs, [shift_size, shift_size], [1, 2]),
-            lambda: tf.identity(outputs)
-        )
+        outputs = tf.roll(outputs, [shift_size, shift_size], [1, 2])
 
-        outputs = outputs[:, :height, :width, ...]
+        outputs = outputs[:, :height, :width]
 
         # FFN
         if self.swin_v2:

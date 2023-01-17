@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 from keras import layers
-from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfswin.swin import SwinBlock
@@ -35,9 +34,6 @@ class BasicLayer(layers.Layer):
         if not isinstance(self.path_drop, (list, tuple)):
             path_drop = [self.path_drop] * self.depth
 
-        shift_size = np.zeros(self.depth, 'int32')
-        shift_size[1::2] = self.shift_size
-
         # noinspection PyAttributeOutsideInit
         self.blocks = [
             SwinBlock(num_heads=self.num_heads, mlp_ratio=self.mlp_ratio, qkv_bias=self.qkv_bias,
@@ -49,10 +45,9 @@ class BasicLayer(layers.Layer):
 
     def shift_window(self, height, width):
         min_size = tf.minimum(height, width)
-        shift_size, window_size = smart_cond(
-            tf.less_equal(min_size, self.window_size),
-            lambda: (0, min_size),
-            lambda: (self.shift_size, self.window_size))
+        with_shift = tf.greater(min_size, self.window_size)
+        shift_size = self.shift_size * tf.cast(with_shift, min_size.dtype)
+        window_size = tf.minimum(self.window_size, min_size)
 
         return shift_size, window_size
 
@@ -68,22 +63,27 @@ class BasicLayer(layers.Layer):
 
         return index
 
-    def attention_mask(self, height, width, window_size):
+    def attention_mask(self, height, width, shift_size, window_size):
         padded_height = tf.cast(tf.math.ceil(height / window_size), 'int32') * window_size
         padded_width = tf.cast(tf.math.ceil(width / window_size), 'int32') * window_size
 
-        last_repeats = [window_size - self.shift_size, self.shift_size]
+        last_repeats = [window_size - shift_size, shift_size]
 
-        image_mask = np.arange(9, dtype='int32').reshape((3, 3))
-        image_mask = tf.repeat(image_mask, [padded_height - window_size] + last_repeats, axis=1)
-        image_mask = tf.repeat(image_mask, [padded_width - window_size] + last_repeats, axis=0)
-        image_mask = image_mask[None, ..., None]
+        shift_mask = np.arange(9, dtype='int32').reshape((3, 3))
+        shift_mask = tf.repeat(shift_mask, [padded_height - window_size] + last_repeats, axis=1)
+        shift_mask = tf.repeat(shift_mask, [padded_width - window_size] + last_repeats, axis=0)
+        shift_mask = shift_mask[None, ..., None]
+        shift_windows = window_partition(shift_mask, padded_height, padded_width, window_size, 'int32')
+        shift_windows = tf.squeeze(shift_windows, axis=-1)
+        shift_windows = shift_windows[:, None] - shift_windows[:, :, None]
 
-        mask_windows = window_partition(image_mask, padded_height, padded_width, window_size, 'int32')
-        mask_windows = mask_windows[..., 0]
+        pad_mask = tf.ones((1, height, width, 1), dtype='int32')
+        pad_mask = tf.pad(pad_mask, [[0, 0], [0, padded_height - height], [0, padded_width - width], [0, 0]])
+        pad_windows = window_partition(pad_mask, padded_height, padded_width, window_size, 'int32')
+        pad_windows = tf.squeeze(pad_windows, axis=-1)
+        pad_windows = pad_windows[:, None] - pad_windows[:, :, None]
 
-        attn_mask = mask_windows[:, None] - mask_windows[:, :, None]
-        attn_mask = tf.where(attn_mask == 0, 0., -100.)
+        attn_mask = tf.where((shift_windows == 0) & (pad_windows == 0), 0., -100.)
         attn_mask = tf.cast(attn_mask, self.compute_dtype)
         attn_mask = attn_mask[None, :, None, ...]
 
@@ -94,12 +94,14 @@ class BasicLayer(layers.Layer):
 
         shift_size, window_size = self.shift_window(height, width)
         relative_index = self.relative_index(window_size)
-        attention_mask = self.attention_mask(height, width, window_size)
+        shift_mask = self.attention_mask(height, width, shift_size, window_size)
+        identity_mask = self.attention_mask(height, width, 0, window_size)
 
         outputs = inputs
         for i, b in enumerate(self.blocks):
             current_shift = shift_size if i % 2 else 0
-            outputs = b([outputs, current_shift, window_size, relative_index, attention_mask])
+            current_mask = shift_mask if i % 2 else identity_mask
+            outputs = b([outputs, current_shift, window_size, relative_index, current_mask])
 
         return outputs
 
