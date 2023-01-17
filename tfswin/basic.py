@@ -69,16 +69,21 @@ class BasicLayer(layers.Layer):
 
         last_repeats = [window_size - shift_size, shift_size]
 
-        image_mask = np.arange(9, dtype='int32').reshape((3, 3))
-        image_mask = tf.repeat(image_mask, [padded_height - window_size] + last_repeats, axis=1)
-        image_mask = tf.repeat(image_mask, [padded_width - window_size] + last_repeats, axis=0)
-        image_mask = image_mask[None, ..., None]
+        shift_mask = np.arange(9, dtype='int32').reshape((3, 3))
+        shift_mask = tf.repeat(shift_mask, [padded_height - window_size] + last_repeats, axis=1)
+        shift_mask = tf.repeat(shift_mask, [padded_width - window_size] + last_repeats, axis=0)
+        shift_mask = shift_mask[None, ..., None]
+        shift_windows = window_partition(shift_mask, padded_height, padded_width, window_size, 'int32')
+        shift_windows = tf.squeeze(shift_windows, axis=-1)
+        shift_windows = shift_windows[:, None] - shift_windows[:, :, None]
 
-        mask_windows = window_partition(image_mask, padded_height, padded_width, window_size, 'int32')
-        mask_windows = mask_windows[..., 0]
+        pad_mask = tf.ones((1, height, width, 1), dtype='int32')
+        pad_mask = tf.pad(pad_mask, [[0, 0], [0, padded_height - height], [0, padded_width - width], [0, 0]])
+        pad_windows = window_partition(pad_mask, padded_height, padded_width, window_size, 'int32')
+        pad_windows = tf.squeeze(pad_windows, axis=-1)
+        pad_windows = pad_windows[:, None] - pad_windows[:, :, None]
 
-        attn_mask = mask_windows[:, None] - mask_windows[:, :, None]
-        attn_mask = tf.where(attn_mask == 0, 0., -100.)
+        attn_mask = tf.where((shift_windows == 0) & (pad_windows == 0), 0., -100.)
         attn_mask = tf.cast(attn_mask, self.compute_dtype)
         attn_mask = attn_mask[None, :, None, ...]
 
