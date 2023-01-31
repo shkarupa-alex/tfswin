@@ -45,7 +45,7 @@ class BasicLayer(layers.Layer):
 
     def shift_window(self, height, width):
         min_size = tf.minimum(height, width)
-        with_shift = tf.greater(min_size, self.window_size)
+        with_shift = min_size > self.window_size
         shift_size = self.shift_size * tf.cast(with_shift, min_size.dtype)
         window_size = tf.minimum(self.window_size, min_size)
 
@@ -85,7 +85,7 @@ class BasicLayer(layers.Layer):
 
         attn_mask = tf.where((shift_windows == 0) & (pad_windows == 0), 0., -100.)
         attn_mask = tf.cast(attn_mask, self.compute_dtype)
-        attn_mask = attn_mask[None, :, None, ...]
+        attn_mask = attn_mask[None, :, None]
 
         return attn_mask
 
