@@ -57,13 +57,15 @@ def SwinTransformer(
       num_heads: number of attention heads.
       patch_size: patch size used to divide input image.
       patch_norm: whether to add normalization after patch embedding.
-      use_ape: whether to add absolute position embedding to the patch embedding
+      use_ape: whether to add absolute position embedding to the patch embedding.
       drop_rate: dropout rate.
       mlp_ratio: ratio of mlp hidden units to embedding units.
       qkv_bias: whether to add a learnable bias to query, key, value.
-      qk_scale: override default qk scale of head_dim ** -0.5 if set
-      attn_drop: attention dropout rate
-      path_drop: stochastic depth rate
+      qk_scale: override default qk scale of head_dim ** -0.5 if set.
+      attn_drop: attention dropout rate.
+      path_drop: stochastic depth rate.
+      window_pretrain: window partition size used in pretraining.
+      swin_v2: whether to use V2 model architecture.
       model_name: model name.
       include_top: whether to include the fully-connected layer at the top of the network.
       weights: one of `None` (random initialization), 'imagenet' (pre-training on ImageNet or ImageNet 21k), or the
