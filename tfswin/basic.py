@@ -70,8 +70,8 @@ class BasicLayer(layers.Layer):
         last_repeats = [window_size - shift_size, shift_size]
 
         shift_mask = np.arange(9, dtype='int32').reshape((3, 3))
-        shift_mask = tf.repeat(shift_mask, [padded_height - window_size] + last_repeats, axis=1)
-        shift_mask = tf.repeat(shift_mask, [padded_width - window_size] + last_repeats, axis=0)
+        shift_mask = tf.repeat(shift_mask, [padded_height - window_size] + last_repeats, axis=0)
+        shift_mask = tf.repeat(shift_mask, [padded_width - window_size] + last_repeats, axis=1)
         shift_mask = shift_mask[None, ..., None]
         shift_windows = window_partition(shift_mask, padded_height, padded_width, window_size, 'int32')
         shift_windows = tf.squeeze(shift_windows, axis=-1)
