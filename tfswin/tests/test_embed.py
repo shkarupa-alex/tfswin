@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.testing_infra import test_combinations, test_utils
+from keras.src.testing_infra import test_combinations, test_utils
 from tfswin.embed import PatchEmbedding
 
 

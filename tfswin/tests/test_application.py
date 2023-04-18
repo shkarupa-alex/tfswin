@@ -4,7 +4,7 @@ import tfswin
 from absl.testing import parameterized
 from keras import layers, models
 from keras.applications import imagenet_utils
-from keras.utils import data_utils, image_utils
+from keras.src.utils import data_utils, image_utils
 
 MODEL_LIST = [
     (tfswin.SwinTransformerTiny224, 224, 768),
