@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras import backend, layers, models
-from keras.applications import imagenet_utils
-from keras.utils import conv_utils, data_utils, layer_utils
+from keras.src.applications import imagenet_utils
+from keras.src.utils import conv_utils, data_utils, layer_utils
 from tfswin.ape import AbsoluteEmbedding
 from tfswin.basic import BasicLayer
 from tfswin.embed import PatchEmbedding
