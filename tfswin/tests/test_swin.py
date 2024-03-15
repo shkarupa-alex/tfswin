@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers
-from keras.src.testing_infra import test_combinations
-from keras.saving import register_keras_serializable
+from tf_keras import layers
+from tf_keras.src.testing_infra import test_combinations
+from tf_keras.saving import register_keras_serializable
 from tfswin.swin import SwinBlock
 from testing_utils import layer_multi_io_test
 

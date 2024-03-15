@@ -1,6 +1,6 @@
 import tensorflow as tf
-from keras import mixed_precision
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import mixed_precision
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from tfswin.norm import LayerNorm
 
 

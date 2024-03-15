@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 import tfswin
 from absl.testing import parameterized
-from keras import layers, models
-from keras.applications import imagenet_utils
-from keras.src.utils import data_utils, image_utils
+from tf_keras import layers, models
+from tf_keras.applications import imagenet_utils
+from tf_keras.src.utils import data_utils, image_utils
 
 MODEL_LIST = [
     (tfswin.SwinTransformerTiny224, 224, 768),
@@ -75,8 +75,7 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
         image = image_utils.load_img(test_image, target_size=(size, size), interpolation='bicubic')
         image = image_utils.img_to_array(image)[None, ...]
 
-        image_ = tfswin.preprocess_input(image)
-        preds = model.predict(image_)
+        preds = model.predict(image)
 
         if 1000 == preds.shape[-1]:
             names = [p[1] for p in imagenet_utils.decode_predictions(preds, top=3)[0]]
@@ -90,8 +89,7 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
     @parameterized.parameters(*MODEL_LIST)
     def test_application_backbone(self, app, size, _):
         inputs = layers.Input(shape=(None, None, 3), dtype='uint8')
-        outputs = layers.Lambda(tfswin.preprocess_input)(inputs)
-        outputs = app(include_top=False)(outputs)
+        outputs = app(include_top=False)(inputs)
         outputs = layers.Conv2D(4, 3, padding='same', activation='softmax')(outputs)
         model = models.Model(inputs=inputs, outputs=outputs)
 

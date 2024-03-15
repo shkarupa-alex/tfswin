@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras.src.testing_infra import test_combinations
+from tf_keras.src.testing_infra import test_combinations
 from tfswin.window import window_partition, window_reverse, window_partition_fused, window_reverse_fused
 
 
