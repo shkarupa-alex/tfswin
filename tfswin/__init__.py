@@ -5,4 +5,3 @@ from tfswin.model import SwinTransformerLarge224, SwinTransformerLarge384
 from tfswin.model import SwinTransformerV2Tiny256, SwinTransformerV2Small256
 from tfswin.model import SwinTransformerV2Base256, SwinTransformerV2Base384
 from tfswin.model import SwinTransformerV2Large256, SwinTransformerV2Large384
-from tfswin.prep import preprocess_input

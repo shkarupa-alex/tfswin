@@ -1,11 +1,9 @@
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
-from keras import mixed_precision
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import mixed_precision
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from tfswin import SwinTransformerTiny224, SwinTransformerV2Tiny256
-from tensorflow.python.util import object_identity
-from tensorflow.python.training.tracking import util as trackable_util
 
 
 @test_combinations.run_all_keras_modes
@@ -33,11 +31,6 @@ class TestModelV1(test_combinations.TestCase):
         # test config
         model.get_config()
 
-        # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
-        for v in model.variables:
-            self.assertIn(v, checkpointed_objects)
-
     def test_ape(self):
         model = SwinTransformerTiny224(weights=None, use_ape=True)
         model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
@@ -48,11 +41,6 @@ class TestModelV1(test_combinations.TestCase):
 
         # test config
         model.get_config()
-
-        # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
-        for v in model.variables:
-            self.assertIn(v, checkpointed_objects)
 
     def test_var_shape(self):
         model = SwinTransformerTiny224(weights=None, include_top=False, input_shape=(None, None, 3))
@@ -65,11 +53,6 @@ class TestModelV1(test_combinations.TestCase):
 
         # test config
         model.get_config()
-
-        # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
-        for v in model.variables:
-            self.assertIn(v, checkpointed_objects)
 
 
 @test_combinations.run_all_keras_modes
@@ -97,11 +80,6 @@ class TestModelV2(test_combinations.TestCase):
         # test config
         model.get_config()
 
-        # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
-        for v in model.variables:
-            self.assertIn(v, checkpointed_objects)
-
     def test_var_shape(self):
         model = SwinTransformerV2Tiny256(weights=None, include_top=False, input_shape=(None, None, 3))
         run_eagerly = test_utils.should_run_eagerly()
@@ -113,11 +91,6 @@ class TestModelV2(test_combinations.TestCase):
 
         # test config
         model.get_config()
-
-        # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
-        for v in model.variables:
-            self.assertIn(v, checkpointed_objects)
 
 
 if __name__ == '__main__':

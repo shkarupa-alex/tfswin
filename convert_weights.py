@@ -3,7 +3,7 @@ import argparse
 import os
 import tfswin
 import torch
-from keras.utils.data_utils import get_file
+from tf_keras.src.utils.data_utils import get_file
 
 BASE_URL = 'https://github.com/SwinTransformer/storage/releases/download/v{}/{}.pth'
 CHECKPOINTS = {

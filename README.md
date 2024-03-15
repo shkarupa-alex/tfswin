@@ -31,12 +31,11 @@ model.fit(...)
 Custom classification (with preprocessing):
 
 ```python
-from keras import layers, models
-from tfswin import SwinTransformerTiny224, preprocess_input
+from tf_keras import layers, models
+from tfswin import SwinTransformerTiny224
 
 inputs = layers.Input(shape=(224, 224, 3), dtype='uint8')
-outputs = layers.Lambda(preprocess_input)(inputs)
-outputs = SwinTransformerTiny224(include_top=False)(outputs)
+outputs = SwinTransformerTiny224(include_top=False)(inputs)
 outputs = layers.Dense(100, activation='softmax')(outputs)
 
 model = models.Model(inputs=inputs, outputs=outputs)
@@ -90,7 +89,7 @@ Note: Swin models are very sensitive to input preprocessing (bicubic resize in t
 ```python
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from tfswin import SwinTransformerTiny224, preprocess_input
+from tfswin import SwinTransformerTiny224
 
 
 def _prepare(example, input_size=224, crop_pct=0.875):
@@ -111,8 +110,6 @@ def _prepare(example, input_size=224, crop_pct=0.875):
 
     pad_h, pad_w = tf.unstack((shape - input_size) // 2)
     image = image[pad_h:pad_h + input_size, pad_w:pad_w + input_size]
-
-    image = preprocess_input(image)
 
     return image, example['label']
 

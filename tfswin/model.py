@@ -1,8 +1,9 @@
 import numpy as np
 import tensorflow as tf
-from keras import backend, layers, models
-from keras.src.applications import imagenet_utils
-from keras.src.utils import conv_utils, data_utils, layer_utils
+from tf_keras import backend, layers, models
+from tf_keras.mixed_precision import global_policy
+from tf_keras.src.applications import imagenet_utils
+from tf_keras.src.utils import conv_utils, data_utils, layer_utils
 from tfswin.ape import AbsoluteEmbedding
 from tfswin.basic import BasicLayer
 from tfswin.embed import PatchEmbedding
@@ -46,7 +47,8 @@ def SwinTransformer(
         pretrain_size, window_size, embed_dim, depths, num_heads, patch_size=4, patch_norm=True, use_ape=False,
         drop_rate=0., mlp_ratio=4., qkv_bias=True, qk_scale=None, attn_drop=0., path_drop=0.1,
         window_pretrain=None, swin_v2=False, model_name='swin', include_top=True, weights=None,
-        input_tensor=None, input_shape=None, pooling=None, classes=1000, classifier_activation='softmax'):
+        input_tensor=None, input_shape=None, pooling=None, classes=1000, classifier_activation='softmax',
+        include_preprocessing=True):
     """Instantiates the Swin Transformer architecture.
 
     Args:
@@ -80,6 +82,8 @@ def SwinTransformer(
       classes: optional number of classes to classify images into, only to be specified if `include_top` is True.
       classifier_activation: the activation function to use on the "top" layer. Ignored unless `include_top=True`.
         When loading pretrained weights, `classifier_activation` can only be `None` or `"softmax"`.
+      include_preprocessing: Boolean, whether to include the preprocessing layer at the bottom of the network.
+        Note: Input image is normalized by ImageNet mean and standard deviation. Defaults to `True`.
 
     Returns:
       A `keras.Model` instance.
@@ -114,17 +118,25 @@ def SwinTransformer(
         data_format='channel_last',
         require_flatten=False,
         weights=weights)
+    input_dtype = global_policy().compute_dtype
 
     if input_tensor is not None:
         if backend.is_keras_tensor(input_tensor):
             image = input_tensor
         else:
-            image = layers.Input(tensor=input_tensor, shape=input_shape, dtype='float32')
+            image = layers.Input(tensor=input_tensor, shape=input_shape, dtype=input_dtype)
     else:
-        image = layers.Input(shape=input_shape)
+        image = layers.Input(shape=input_shape, dtype=input_dtype)
+
+    x = image
+
+    if include_preprocessing:
+        imagenet_mean = np.array([0.485, 0.456, 0.406], 'float32') * 255.
+        imagenet_var = (np.array([0.229, 0.224, 0.225], 'float32') * 255.) ** 2
+        x = layers.Normalization(mean=imagenet_mean.tolist(), variance=imagenet_var.tolist(), name='normalize')(x)
 
     # Define model pipeline
-    x = PatchEmbedding(patch_size=patch_size, embed_dim=embed_dim, normalize=patch_norm, name='patch_embed')(image)
+    x = PatchEmbedding(patch_size=patch_size, embed_dim=embed_dim, normalize=patch_norm, name='patch_embed')(x)
 
     if use_ape:
         pretrain_size_ = conv_utils.conv_output_length(
