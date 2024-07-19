@@ -1,27 +1,26 @@
 import tensorflow as tf
-from tf_keras import initializers, layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import initializers, layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 
 
 @register_keras_serializable(package='TFSwin')
 class AbsoluteEmbedding(layers.Layer):
     def __init__(self, pretrain_size, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+        self.input_spec = InputSpec(ndim=4)
 
         self.pretrain_size = pretrain_size
 
-    @shape_type_conversion
     def build(self, input_shape):
         channels = input_shape[-1]
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-        self.input_spec = layers.InputSpec(ndim=4, axes={-1: channels})
+        self.input_spec = InputSpec(ndim=4, axes={-1: channels})
 
         # noinspection PyAttributeOutsideInit
         self.embedding = self.add_weight(
-            'embedding',
+            name='embedding',
             shape=[1, self.pretrain_size, self.pretrain_size, channels],
             initializer=initializers.TruncatedNormal(stddev=0.02),
             trainable=True,
@@ -36,7 +35,6 @@ class AbsoluteEmbedding(layers.Layer):
 
         return inputs + embeddings
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
 

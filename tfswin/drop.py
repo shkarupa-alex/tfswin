@@ -1,31 +1,25 @@
 import tensorflow as tf
-from tf_keras import backend, layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.control_flow_util import smart_cond
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import backend, layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 
 
 @register_keras_serializable(package='TFSwin')
 class DropPath(layers.Layer):
     def __init__(self, rate, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(min_ndim=1)
+        self.input_spec = InputSpec(min_ndim=1)
 
         if not 0. <= rate <= 1.:
             raise ValueError(f'Invalid value {rate} received for `rate`. Expected a value between 0 and 1.')
 
         self.rate = rate
 
-    def call(self, inputs, training=None, **kwargs):
-        if 0. == self.rate:
+    def call(self, inputs, training=False, **kwargs):
+        if 0. == self.rate or not training:
             return inputs
 
-        if training is None:
-            training = backend.learning_phase()
-
-        outputs = smart_cond(training, lambda: self.drop(inputs), lambda: tf.identity(inputs))
-
-        return outputs
+        return self.drop(inputs)
 
     def drop(self, inputs):
         keep = 1.0 - self.rate
@@ -39,7 +33,6 @@ class DropPath(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
 

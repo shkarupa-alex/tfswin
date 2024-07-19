@@ -1,10 +1,9 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import layers
-from tf_keras.src.testing_infra import test_combinations
-from tf_keras.saving import register_keras_serializable
+from keras.src import layers, testing
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 from tfswin.swin import SwinBlock
-from testing_utils import layer_multi_io_test
 
 
 @register_keras_serializable('TFSwin')
@@ -12,8 +11,8 @@ class SwinBlockSqueeze(SwinBlock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.input_spec = [
-            layers.InputSpec(ndim=4), layers.InputSpec(ndim=1, dtype='int32'), layers.InputSpec(ndim=1, dtype='int32'),
-            layers.InputSpec(ndim=2, dtype='int32'), layers.InputSpec(ndim=5)]
+            InputSpec(ndim=4), InputSpec(ndim=1, dtype='int32'), InputSpec(ndim=1, dtype='int32'),
+            InputSpec(ndim=2, dtype='int32'), InputSpec(ndim=5)]
 
     def call(self, inputs, **kwargs):
         inputs, shift_size, window_size, relative_index, attention_mask = inputs
@@ -21,8 +20,7 @@ class SwinBlockSqueeze(SwinBlock):
         return super().call([inputs, shift_size[0], window_size[0], relative_index[0], attention_mask], **kwargs)
 
 
-@test_combinations.run_all_keras_modes
-class TestSwinBlock(test_combinations.TestCase):
+class TestSwinBlock(testing.TestCase):
     def test_layer(self):
         inputs = 10 * np.random.random((1, 7, 7, 96)) - 0.5
         shift3 = np.array([3], 'int32')
@@ -31,42 +29,42 @@ class TestSwinBlock(test_combinations.TestCase):
         index = np.zeros([1, 7 ** 4], 'int32')
         masks = 10 * np.random.random((1, 1, 1, 49, 49)) - 0.5
 
-        layer_multi_io_test(
+        self.run_layer_test(
             SwinBlockSqueeze,
-            kwargs={'num_heads': 24, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None, 'drop': 0., 'attn_drop': 0.,
+            init_kwargs={'num_heads': 24, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None, 'drop': 0., 'attn_drop': 0.,
                     'path_drop': 0.20000000298023224, 'window_pretrain': 7, 'swin_v2': False},
-            input_datas=[inputs, shift3, window, index, masks],
-            input_dtypes=['float32', 'int32', 'int32', 'int32', 'float32'],
-            expected_output_shapes=[(None, 7, 7, 96)],
-            expected_output_dtypes=['float32']
+            input_data=(inputs, shift3, window, index, masks),
+            input_dtype=('float32', 'int32', 'int32', 'int32', 'float32'),
+            expected_output_shape=(1, 7, 7, 96),
+            expected_output_dtype='float32'
         )
-        layer_multi_io_test(
+        self.run_layer_test(
             SwinBlockSqueeze,
-            kwargs={'num_heads': 24, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None, 'drop': 0., 'attn_drop': 0.,
+            init_kwargs={'num_heads': 24, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None, 'drop': 0., 'attn_drop': 0.,
                     'path_drop': 0.20000000298023224, 'window_pretrain': 7, 'swin_v2': False},
-            input_datas=[inputs, shift5, window, index, masks],
-            input_dtypes=['float32', 'int32', 'int32', 'int32', 'float32'],
-            expected_output_shapes=[(None, 7, 7, 96)],
-            expected_output_dtypes=['float32']
+            input_data=(inputs, shift5, window, index, masks),
+            input_dtype=('float32', 'int32', 'int32', 'int32', 'float32'),
+            expected_output_shape=(1, 7, 7, 96),
+            expected_output_dtype='float32'
         )
 
-        layer_multi_io_test(
+        self.run_layer_test(
             SwinBlockSqueeze,
-            kwargs={'num_heads': 24, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None, 'drop': 0., 'attn_drop': 0.,
+            init_kwargs={'num_heads': 24, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None, 'drop': 0., 'attn_drop': 0.,
                     'path_drop': 0.20000000298023224, 'window_pretrain': 0, 'swin_v2': True},
-            input_datas=[inputs, shift3, window, index, masks],
-            input_dtypes=['float32', 'int32', 'int32', 'int32', 'float32'],
-            expected_output_shapes=[(None, 7, 7, 96)],
-            expected_output_dtypes=['float32']
+            input_data=(inputs, shift3, window, index, masks),
+            input_dtype=('float32', 'int32', 'int32', 'int32', 'float32'),
+            expected_output_shape=(1, 7, 7, 96),
+            expected_output_dtype='float32'
         )
-        layer_multi_io_test(
+        self.run_layer_test(
             SwinBlockSqueeze,
-            kwargs={'num_heads': 24, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None, 'drop': 0., 'attn_drop': 0.,
+            init_kwargs={'num_heads': 24, 'mlp_ratio': 4., 'qkv_bias': True, 'qk_scale': None, 'drop': 0., 'attn_drop': 0.,
                     'path_drop': 0.20000000298023224, 'window_pretrain': 4, 'swin_v2': True},
-            input_datas=[inputs, shift5, window, index, masks],
-            input_dtypes=['float32', 'int32', 'int32', 'int32', 'float32'],
-            expected_output_shapes=[(None, 7, 7, 96)],
-            expected_output_dtypes=['float32']
+            input_data=(inputs, shift5, window, index, masks),
+            input_dtype=('float32', 'int32', 'int32', 'int32', 'float32'),
+            expected_output_shape=(1, 7, 7, 96),
+            expected_output_dtype='float32'
         )
 
 

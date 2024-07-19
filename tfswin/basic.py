@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 from tfswin.swin import SwinBlock
 from tfswin.window import window_partition
 
@@ -12,7 +12,7 @@ class BasicLayer(layers.Layer):
     def __init__(self, depth, num_heads, window_size, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop=0., attn_drop=0., path_drop=0., window_pretrain=0, swin_v2=False, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+        self.input_spec = InputSpec(ndim=4)
 
         self.depth = depth
         self.num_heads = num_heads
@@ -28,18 +28,19 @@ class BasicLayer(layers.Layer):
 
         self.shift_size = self.window_size // 2
 
-    @shape_type_conversion
     def build(self, input_shape):
         path_drop = self.path_drop
         if not isinstance(self.path_drop, (list, tuple)):
             path_drop = [self.path_drop] * self.depth
 
         # noinspection PyAttributeOutsideInit
-        self.blocks = [
-            SwinBlock(num_heads=self.num_heads, mlp_ratio=self.mlp_ratio, qkv_bias=self.qkv_bias,
-                      qk_scale=self.qk_scale, drop=self.drop, attn_drop=self.attn_drop, path_drop=path_drop[i],
-                      window_pretrain=self.window_pretrain, swin_v2=self.swin_v2, name=f'blocks.{i}')
-            for i in range(self.depth)]
+        self.blocks = []
+        for i in range(self.depth):
+            self.blocks.append(SwinBlock(
+                num_heads=self.num_heads, mlp_ratio=self.mlp_ratio, qkv_bias=self.qkv_bias, qk_scale=self.qk_scale,
+                drop=self.drop, attn_drop=self.attn_drop, path_drop=path_drop[i], window_pretrain=self.window_pretrain,
+                swin_v2=self.swin_v2, name=f'blocks.{i}', dtype=self.dtype_policy))
+            self.blocks[-1].build([input_shape, tuple(), tuple(), (None,), (None, None, None, None, None)])
 
         super().build(input_shape)
 
@@ -99,13 +100,12 @@ class BasicLayer(layers.Layer):
 
         outputs = inputs
         for i, b in enumerate(self.blocks):
-            current_shift = shift_size if i % 2 else 0
+            current_shift = shift_size if i % 2 else tf.cast(0, 'int32')
             current_mask = shift_mask if i % 2 else identity_mask
             outputs = b([outputs, current_shift, window_size, relative_index, current_mask])
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
 

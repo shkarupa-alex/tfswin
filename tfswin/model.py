@@ -1,14 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import backend, layers, models
-from tf_keras.mixed_precision import global_policy
-from tf_keras.src.applications import imagenet_utils
-from tf_keras.src.utils import conv_utils, data_utils, layer_utils
+from keras.src import backend, layers, models
+from keras.src.applications import imagenet_utils
+from keras.src.dtype_policies import dtype_policy
+from keras.src.ops import operation_utils
+from keras.src.utils import get_file
 from tfswin.ape import AbsoluteEmbedding
 from tfswin.basic import BasicLayer
 from tfswin.embed import PatchEmbedding
 from tfswin.merge import PatchMerging
-from tfswin.norm import LayerNorm
 
 BASE_URL = 'https://github.com/shkarupa-alex/tfswin/releases/download/{}/swin{}_{}.h5'
 WEIGHT_URLS = {
@@ -86,7 +86,7 @@ def SwinTransformer(
         Note: Input image is normalized by ImageNet mean and standard deviation. Defaults to `True`.
 
     Returns:
-      A `keras.Model` instance.
+      A `keras.src.Model` instance.
     """
     if not (weights in {'imagenet', None} or tf.io.gfile.exists(weights)):
         raise ValueError('The `weights` argument should be either `None` (random initialization), `imagenet` '
@@ -118,7 +118,7 @@ def SwinTransformer(
         data_format='channel_last',
         require_flatten=False,
         weights=weights)
-    input_dtype = global_policy().compute_dtype
+    input_dtype = dtype_policy.dtype_policy().compute_dtype
 
     if input_tensor is not None:
         if backend.is_keras_tensor(input_tensor):
@@ -139,9 +139,10 @@ def SwinTransformer(
     x = PatchEmbedding(patch_size=patch_size, embed_dim=embed_dim, normalize=patch_norm, name='patch_embed')(x)
 
     if use_ape:
-        pretrain_size_ = conv_utils.conv_output_length(
-            pretrain_size, patch_size, padding='same', stride=patch_size, dilation=1)
-        x = AbsoluteEmbedding(pretrain_size_)(x)
+        pretrain_size_ = operation_utils.compute_conv_output_shape(
+            (None, pretrain_size, pretrain_size, 3), embed_dim, (patch_size, patch_size), padding='same',
+            strides=patch_size, dilation_rate=1)
+        x = AbsoluteEmbedding(pretrain_size_[1])(x)
 
     x = layers.Dropout(drop_rate, name='pos_drop')(x)
 
@@ -160,9 +161,9 @@ def SwinTransformer(
                        qkv_bias=qkv_bias, qk_scale=qk_scale, drop=drop_rate, attn_drop=attn_drop, path_drop=path_drop,
                        window_pretrain=window_pretrain[i], swin_v2=swin_v2, name=f'layers.{i}')(x)
         if not_last:
-            x = PatchMerging(swin_v2=swin_v2, name=f'layers.{i}/downsample')(x)
+            x = PatchMerging(swin_v2=swin_v2, name=f'layers.{i}.downsample')(x)
 
-    x = LayerNorm(name='norm')(x)
+    x = layers.LayerNormalization(epsilon=1.001e-5, name='norm')(x)
 
     if include_top or pooling in {None, 'avg'}:
         x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
@@ -177,18 +178,18 @@ def SwinTransformer(
 
     # Ensure that the model takes into account any potential predecessors of `input_tensor`.
     if input_tensor is not None:
-        inputs = layer_utils.get_source_inputs(input_tensor)
+        inputs = operation_utils.get_source_inputs(input_tensor)
     else:
         inputs = image
 
     # Create model.
-    model = models.Model(inputs, x, name=model_name)
+    model = models.Functional(inputs=inputs, outputs=x, name=model_name)
 
     # Load weights.
     if 'imagenet' == weights and model_name in WEIGHT_URLS:
         weights_url = WEIGHT_URLS[model_name]
         weights_hash = WEIGHT_HASHES[model_name]
-        weights_path = data_utils.get_file(origin=weights_url, file_hash=weights_hash, cache_subdir='tfswin')
+        weights_path = get_file(origin=weights_url, file_hash=weights_hash, cache_subdir='tfswin')
         model.load_weights(weights_path)
     elif weights is not None:
         model.load_weights(weights)
@@ -203,7 +204,7 @@ def SwinTransformer(
         last_layer = 'max_pool'
 
     outputs = model.get_layer(name=last_layer).output
-    model = models.Model(inputs=inputs, outputs=outputs, name=model_name)
+    model = models.Functional(inputs=inputs, outputs=outputs, name=model_name)
 
     return model
 

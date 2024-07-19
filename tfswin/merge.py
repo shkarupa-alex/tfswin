@@ -1,27 +1,25 @@
 import math
 import numpy as np
 import tensorflow as tf
-from tf_keras import layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
-from tfswin.norm import LayerNorm
+from keras.src import layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 
 
 @register_keras_serializable(package='TFSwin')
 class PatchMerging(layers.Layer):
     def __init__(self, swin_v2=False, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+        self.input_spec = InputSpec(ndim=4)
 
         self.swin_v2 = swin_v2
 
-    @shape_type_conversion
     def build(self, input_shape):
         # noinspection PyAttributeOutsideInit
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
-        self.input_spec = layers.InputSpec(ndim=4, axes={-1: self.channels})
+        self.input_spec = InputSpec(ndim=4, axes={-1: self.channels})
 
         # Channel permutation after space-to-depth
         # Required due to unusual concatenation order in orignal version
@@ -32,10 +30,17 @@ class PatchMerging(layers.Layer):
         self.perm = perm.ravel()
 
         # noinspection PyAttributeOutsideInit
-        self.norm = LayerNorm(name='norm')
+        self.norm = layers.LayerNormalization(epsilon=1.001e-5, name='norm', dtype=self.dtype_policy)
 
         # noinspection PyAttributeOutsideInit
-        self.reduction = layers.Dense(self.channels * 2, use_bias=False, name='reduction')
+        self.reduction = layers.Dense(self.channels * 2, use_bias=False, name='reduction', dtype=self.dtype_policy)
+
+        if self.swin_v2:
+            self.reduction.build((None, None, None, self.channels * 4))
+            self.norm.build((None, None, None, self.channels * 2))
+        else:
+            self.norm.build((None, None, None, self.channels * 4))
+            self.reduction.build((None, None, None, self.channels * 4))
 
         super().build(input_shape)
 
@@ -61,7 +66,6 @@ class PatchMerging(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         def _scale(value):
             return None if value is None else math.ceil(value / 2)
