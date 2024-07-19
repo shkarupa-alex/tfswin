@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import initializers, layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import initializers, layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 from tfswin.window import window_partition_fused, window_reverse_fused
 
 
@@ -12,8 +12,8 @@ class WindowAttention(layers.Layer):
                  window_pretrain=0, swin_v2=False, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
-            layers.InputSpec(ndim=4), layers.InputSpec(ndim=0, dtype='int32'), layers.InputSpec(ndim=1, dtype='int32'),
-            layers.InputSpec(ndim=5)]
+            InputSpec(ndim=4), InputSpec(ndim=0, dtype='int32'), InputSpec(ndim=1, dtype='int32'),
+            InputSpec(ndim=5)]
 
         self.num_heads = num_heads
         self.qkv_bias = qkv_bias
@@ -23,7 +23,6 @@ class WindowAttention(layers.Layer):
         self.window_pretrain = window_pretrain
         self.swin_v2 = swin_v2
 
-    @shape_type_conversion
     def build(self, input_shape):
         # noinspection PyAttributeOutsideInit
         self.channels = input_shape[0][-1]
@@ -32,20 +31,23 @@ class WindowAttention(layers.Layer):
 
         qkv_bias = not self.swin_v2 and self.qkv_bias
         # noinspection PyAttributeOutsideInit
-        self.qkv = layers.Dense(self.channels * 3, use_bias=qkv_bias, name='qkv')
+        self.qkv = layers.Dense(self.channels * 3, use_bias=qkv_bias, name='qkv', dtype=self.dtype_policy)
+        self.qkv.build(input_shape[0])
 
         if self.swin_v2:
             # noinspection PyAttributeOutsideInit
             self.scale = self.add_weight(
-                'logit_scale',
+                name='logit_scale',
                 shape=[self.num_heads, 1, 1],
                 initializer=initializers.Constant(np.log(10.)),
                 trainable=True,
                 dtype=self.dtype)
 
             # noinspection PyAttributeOutsideInit
-            self.cpb0 = layers.Dense(512, activation='relu', name='cpb_mlp.0')
-            self.cpb1 = layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name=f'cpb_mlp.2')
+            self.cpb0 = layers.Dense(512, activation='relu', name='cpb_mlp.0', dtype=self.dtype_policy)
+            self.cpb0.build([1, None, None, 2])
+            self.cpb1 = layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name=f'cpb_mlp.2', dtype=self.dtype_policy)
+            self.cpb1.build([1, None, None, 512])
 
             # noinspection PyAttributeOutsideInit
             self.q_bias = None
@@ -53,13 +55,13 @@ class WindowAttention(layers.Layer):
             self.v_bias = None
             if self.qkv_bias:
                 self.q_bias = self.add_weight(
-                    'q_bias',
+                    name='q_bias',
                     shape=[self.channels],
                     initializer='zeros',
                     trainable=True,
                     dtype=self.dtype)
                 self.v_bias = self.add_weight(
-                    'v_bias',
+                    name='v_bias',
                     shape=[self.channels],
                     initializer='zeros',
                     trainable=True,
@@ -70,20 +72,21 @@ class WindowAttention(layers.Layer):
 
             # noinspection PyAttributeOutsideInit
             self.relative_bias = self.add_weight(
-                'relative_position_bias_table',
+                name='relative_position_bias_table',
                 shape=[(2 * self.window_pretrain - 1) ** 2, self.num_heads],
                 initializer=initializers.TruncatedNormal(stddev=0.02),
                 trainable=True,
                 dtype=self.dtype)
 
         # noinspection PyAttributeOutsideInit
-        self.drop_attn = layers.Dropout(self.attn_drop)
+        self.drop_attn = layers.Dropout(self.attn_drop, dtype=self.dtype_policy)
 
         # noinspection PyAttributeOutsideInit
-        self.proj = layers.Dense(self.channels, name='proj')
+        self.proj = layers.Dense(self.channels, name='proj', dtype=self.dtype_policy)
+        self.proj.build(input_shape[0])
 
         # noinspection PyAttributeOutsideInit
-        self.drop_proj = layers.Dropout(self.proj_drop)
+        self.drop_proj = layers.Dropout(self.proj_drop, dtype=self.dtype_policy)
 
         super().build(input_shape)
 
@@ -165,7 +168,6 @@ class WindowAttention(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[0]
 

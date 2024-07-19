@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 import tfswin
 from absl.testing import parameterized
-from tf_keras import layers, models
-from tf_keras.applications import imagenet_utils
-from tf_keras.src.utils import data_utils, image_utils
+from keras.src import layers, models
+from keras.src.applications import imagenet_utils
+from keras.src.utils import get_file, image_utils
 
 MODEL_LIST = [
     (tfswin.SwinTransformerTiny224, 224, 768),
@@ -49,14 +49,14 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
     @parameterized.parameters(*MODEL_LIST)
     def test_application_input_1_channel(self, app, size, last_dim):
         input_shape = (size, size, 1)
-        output_shape = app(weights=None, include_top=False, input_shape=input_shape).output_shape
+        output_shape = app(weights=None, include_top=False, input_shape=input_shape, include_preprocessing=False).output_shape
         self.assertLen(output_shape, 4)
         self.assertEqual(output_shape[-1], last_dim)
 
     @parameterized.parameters(*MODEL_LIST)
     def test_application_input_4_channels(self, app, size, last_dim):
         input_shape = (size, size, 4)
-        output_shape = app(weights=None, include_top=False, input_shape=input_shape).output_shape
+        output_shape = app(weights=None, include_top=False, input_shape=input_shape, include_preprocessing=False).output_shape
         self.assertLen(output_shape, 4)
         self.assertEqual(output_shape[-1], last_dim)
 
@@ -70,7 +70,7 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
         model = app(weights='imagenet')
         self.assertIn(model.output_shape[-1], {1000, 21841})
 
-        test_image = data_utils.get_file(
+        test_image = get_file(
             'elephant.jpg', 'https://storage.googleapis.com/tensorflow/keras-applications/tests/elephant.jpg')
         image = image_utils.load_img(test_image, target_size=(size, size), interpolation='bicubic')
         image = image_utils.img_to_array(image)[None, ...]

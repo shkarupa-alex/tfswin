@@ -3,7 +3,7 @@ import argparse
 import os
 import tfswin
 import torch
-from tf_keras.src.utils.data_utils import get_file
+from keras.src.utils import get_file
 
 BASE_URL = 'https://github.com/SwinTransformer/storage/releases/download/v{}/{}.pth'
 CHECKPOINTS = {
@@ -82,7 +82,7 @@ if '__main__' == __name__:
 
     weights_tf = []
     for w in model.weights:
-        name = convert_name(w.name)
+        name = convert_name(w.path)
         assert name in weights_torch['model'], f'Can\'t find weight {name} in checkpoint'
 
         weight = weights_torch['model'].pop(name).numpy()
@@ -91,4 +91,4 @@ if '__main__' == __name__:
         weights_tf.append(weight)
 
     model.set_weights(weights_tf)
-    model.save_weights(weights_path.replace('.pth', '.h5'), save_format='h5')
+    model.save_weights(weights_path.replace('.pth', '.weights.h5'))

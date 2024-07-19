@@ -1,10 +1,9 @@
 import tensorflow as tf
-from tf_keras import layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 from tfswin.drop import DropPath
 from tfswin.mlp import MLP
-from tfswin.norm import LayerNorm
 from tfswin.winatt import WindowAttention
 
 
@@ -14,8 +13,8 @@ class SwinBlock(layers.Layer):
                  window_pretrain=0, swin_v2=False, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
-            layers.InputSpec(ndim=4), layers.InputSpec(ndim=0, dtype='int32'), layers.InputSpec(ndim=0, dtype='int32'),
-            layers.InputSpec(ndim=1, dtype='int32'), layers.InputSpec(ndim=5)]
+            InputSpec(ndim=4), InputSpec(ndim=0, dtype='int32'), InputSpec(ndim=0, dtype='int32'),
+            InputSpec(ndim=1, dtype='int32'), InputSpec(ndim=5)]
         self.num_heads = num_heads
         self.mlp_ratio = mlp_ratio
         self.qkv_bias = qkv_bias
@@ -26,26 +25,31 @@ class SwinBlock(layers.Layer):
         self.window_pretrain = window_pretrain
         self.swin_v2 = swin_v2
 
-    @shape_type_conversion
     def build(self, input_shape):
         norm_init = 'zeros' if self.swin_v2 else 'ones'
 
         # noinspection PyAttributeOutsideInit
-        self.norm1 = LayerNorm(gamma_initializer=norm_init, name='norm1')
+        self.norm1 = layers.LayerNormalization(epsilon=1.001e-5, gamma_initializer=norm_init, name='norm1', dtype=self.dtype_policy)
+        self.norm1.build(input_shape[0])
 
         # noinspection PyAttributeOutsideInit
         self.attn = WindowAttention(num_heads=self.num_heads, qkv_bias=self.qkv_bias, qk_scale=self.qk_scale,
                                     attn_drop=self.attn_drop, proj_drop=self.drop, window_pretrain=self.window_pretrain,
-                                    swin_v2=self.swin_v2, name='attn')
+                                    swin_v2=self.swin_v2, name='attn', dtype=self.dtype_policy)
+        self.attn.build([
+            input_shape[0], input_shape[2], input_shape[3], input_shape[4]
+        ])
 
         # noinspection PyAttributeOutsideInit
-        self.drop_path = DropPath(self.path_drop)
+        self.drop_path = DropPath(self.path_drop, dtype=self.dtype_policy)
 
         # noinspection PyAttributeOutsideInit
-        self.norm2 = LayerNorm(gamma_initializer=norm_init, name='norm2')
+        self.norm2 = layers.LayerNormalization(epsilon=1.001e-5, gamma_initializer=norm_init, name='norm2', dtype=self.dtype_policy)
+        self.norm2.build(input_shape[0])
 
         # noinspection PyAttributeOutsideInit
-        self.mlp = MLP(ratio=self.mlp_ratio, dropout=self.drop, name='mlp')
+        self.mlp = MLP(ratio=self.mlp_ratio, dropout=self.drop, name='mlp', dtype=self.dtype_policy)
+        self.mlp.build(input_shape[0])
 
         super().build(input_shape)
 
@@ -84,7 +88,6 @@ class SwinBlock(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[0]
 
