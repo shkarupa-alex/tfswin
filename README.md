@@ -1,6 +1,6 @@
 # tfswin
 
-Keras (TensorFlow v2) reimplementation of **Swin Transformer** and **Swin Transformer V2** models.
+Keras v3 (TensorFlow v2) reimplementation of **Swin Transformer** and **Swin Transformer V2** models.
 
 + Based on [Official Pytorch implementation](https://github.com/microsoft/Swin-Transformer).
 + Supports variable-shape inference for downstream tasks.
@@ -31,7 +31,7 @@ model.fit(...)
 Custom classification (with preprocessing):
 
 ```python
-from tf_keras import layers, models
+from keras import layers, models
 from tfswin import SwinTransformerTiny224
 
 inputs = layers.Input(shape=(224, 224, 3), dtype='uint8')
