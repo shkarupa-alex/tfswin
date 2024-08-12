@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.src import layers
+from keras.src import layers, ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 from tfswin.drop import DropPath
@@ -55,7 +55,7 @@ class SwinBlock(layers.Layer):
 
     def call(self, inputs, *args, **kwargs):
         inputs, shift_size, window_size, relative_index, attention_mask = inputs
-        height, width = tf.unstack(tf.shape(inputs)[1:3])
+        height, width = ops.shape(inputs)[1:3]
 
         if self.swin_v2:
             outputs = inputs
@@ -65,16 +65,16 @@ class SwinBlock(layers.Layer):
         h_pad = (window_size - height % window_size) % window_size
         w_pad = (window_size - width % window_size) % window_size
         paddings = [[0, 0], [0, h_pad], [0, w_pad], [0, 0]]
-        outputs = tf.pad(outputs, paddings)
+        outputs = ops.pad(outputs, paddings)
 
         # Cyclic shift
-        outputs = tf.roll(outputs, [-shift_size, -shift_size], [1, 2])
+        outputs = ops.roll(outputs, [-shift_size, -shift_size], [1, 2])
 
         # W-MSA/SW-MSA
         outputs = self.attn([outputs, window_size, relative_index, attention_mask])
 
         # Reverse cyclic shift
-        outputs = tf.roll(outputs, [shift_size, shift_size], [1, 2])
+        outputs = ops.roll(outputs, [shift_size, shift_size], [1, 2])
 
         outputs = outputs[:, :height, :width]
 

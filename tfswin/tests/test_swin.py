@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import layers, testing
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
@@ -66,7 +65,3 @@ class TestSwinBlock(testing.TestCase):
             expected_output_shape=(1, 7, 7, 96),
             expected_output_dtype='float32'
         )
-
-
-if __name__ == '__main__':
-    tf.test.main()

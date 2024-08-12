@@ -1,6 +1,5 @@
 import numpy as np
-import tensorflow as tf
-from keras.src import testing
+from keras.src import ops, testing
 from tfswin.window import window_partition, window_reverse, window_partition_fused, window_reverse_fused
 
 
@@ -12,8 +11,8 @@ class TestWindowAttention(testing.TestCase):
         inputs = np.random.uniform(size=(batch, height, width, qkv_mult * num_heads * channels)).astype('float32')
 
         expected = window_partition(inputs, height, width, window)
-        expected = tf.reshape(expected, [-1, window ** 2, 3, num_heads, channels])
-        expected = tf.transpose(expected, [2, 0, 3, 1, 4])
+        expected = ops.reshape(expected, [-1, window ** 2, 3, num_heads, channels])
+        expected = ops.transpose(expected, [2, 0, 3, 1, 4])
 
         result = window_partition_fused(inputs, height, width, window, num_heads, qkv_mult=qkv_mult)
 
@@ -27,14 +26,10 @@ class TestWindowAttention(testing.TestCase):
         inputs = np.random.uniform(
             size=(batch * height * width // window ** 2, num_heads, window ** 2, channels)).astype('float32')
 
-        expected = tf.transpose(inputs, perm=[0, 2, 1, 3])
-        expected = tf.reshape(expected, [-1, window ** 2, channels * num_heads])
+        expected = ops.transpose(inputs, [0, 2, 1, 3])
+        expected = ops.reshape(expected, [-1, window ** 2, channels * num_heads])
         expected = window_reverse(expected, height, width, window)
 
         result = window_reverse_fused(inputs, height, width, window, num_heads)
 
         self.assertAllClose(expected, result)
-
-
-if __name__ == '__main__':
-    tf.test.main()

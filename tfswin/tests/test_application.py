@@ -1,8 +1,7 @@
 import numpy as np
-import tensorflow as tf
 import tfswin
 from absl.testing import parameterized
-from keras.src import layers, models
+from keras.src import layers, models, testing
 from keras.src.applications import imagenet_utils
 from keras.src.utils import get_file, image_utils
 
@@ -22,7 +21,7 @@ MODEL_LIST = [
 ]
 
 
-class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
+class ApplicationTest(testing.TestCase, parameterized.TestCase):
     @parameterized.parameters(*MODEL_LIST)
     def test_application_base(self, app, *_):
         # Can be instantiated with default arguments
@@ -71,7 +70,7 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
         self.assertIn(model.output_shape[-1], {1000, 21841})
 
         test_image = get_file(
-            'elephant.jpg', 'https://storage.googleapis.com/tensorflow/keras-applications/tests/elephant.jpg')
+            'elephant.jpg', 'https://storage.googleapis.com/tensorflow/keras.src-applications/tests/elephant.jpg')
         image = image_utils.load_img(test_image, target_size=(size, size), interpolation='bicubic')
         image = image_utils.img_to_array(image)[None, ...]
 
@@ -97,7 +96,3 @@ class ApplicationTest(tf.test.TestCase, parameterized.TestCase):
         result = model.predict(data)
 
         self.assertTupleEqual(result.shape, (2, size * 2 // 32, size * 2 // 32, 4))
-
-
-if __name__ == '__main__':
-    tf.test.main()

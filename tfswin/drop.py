@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.src import backend, layers
+from keras.src import backend, layers, ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -23,11 +23,11 @@ class DropPath(layers.Layer):
 
     def drop(self, inputs):
         keep = 1.0 - self.rate
-        batch = tf.shape(inputs)[0]
+        batch = ops.shape(inputs)[0]
         shape = [batch] + [1] * (inputs.shape.rank - 1)
 
         random = tf.random.uniform(shape, dtype=self.compute_dtype) <= keep
-        random = tf.cast(random, self.compute_dtype) / keep
+        random = ops.cast(random, self.compute_dtype) / keep
 
         outputs = inputs * random
 

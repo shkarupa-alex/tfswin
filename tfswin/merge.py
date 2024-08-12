@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import tensorflow as tf
-from keras.src import layers
+from keras.src import layers, ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -48,10 +48,10 @@ class PatchMerging(layers.Layer):
         def _pad(value):
             return None if value is None else value + value % 2
 
-        height_width = tf.shape(inputs)[1:3]
-        hpad, wpad = tf.unstack(height_width % 2)
+        height, width = ops.shape(inputs)[1:3]
+        hpad, wpad = height % 2, width % 2
         paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
-        outputs = tf.pad(inputs, paddings)
+        outputs = ops.pad(inputs, paddings)
         outputs.set_shape((inputs.shape[0], _pad(inputs.shape[1]), _pad(inputs.shape[2]), inputs.shape[3]))
 
         outputs = tf.nn.space_to_depth(outputs, 2)

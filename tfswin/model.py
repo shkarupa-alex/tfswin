@@ -5,7 +5,6 @@ from keras.src.applications import imagenet_utils
 from keras.src.dtype_policies import dtype_policy
 from keras.src.ops import operation_utils
 from keras.src.utils import get_file
-from tfswin.ape import AbsoluteEmbedding
 from tfswin.basic import BasicLayer
 from tfswin.embed import PatchEmbedding
 from tfswin.merge import PatchMerging
@@ -137,13 +136,6 @@ def SwinTransformer(
 
     # Define model pipeline
     x = PatchEmbedding(patch_size=patch_size, embed_dim=embed_dim, normalize=patch_norm, name='patch_embed')(x)
-
-    if use_ape:
-        pretrain_size_ = operation_utils.compute_conv_output_shape(
-            (None, pretrain_size, pretrain_size, 3), embed_dim, (patch_size, patch_size), padding='same',
-            strides=patch_size, dilation_rate=1)
-        x = AbsoluteEmbedding(pretrain_size_[1])(x)
-
     x = layers.Dropout(drop_rate, name='pos_drop')(x)
 
     path_drops = np.linspace(0., path_drop, sum(depths))
