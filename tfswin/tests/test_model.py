@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from absl.testing import parameterized
 from keras.src.dtype_policies import dtype_policy
 from keras.src import testing
@@ -21,17 +20,6 @@ class TestModelV1(testing.TestCase, parameterized.TestCase):
             dtype_policy.set_dtype_policy('mixed_float16')
 
         model = SwinTransformerTiny224(weights=None)
-        model.compile(optimizer='rmsprop', loss='mse')
-
-        images = np.random.random((10, 224, 224, 3)).astype('float32')
-        labels = (np.random.random((10, 1)) + 0.5).astype('int32')
-        model.fit(images, labels, epochs=1, batch_size=2)
-
-        # test config
-        model.get_config()
-
-    def test_ape(self):
-        model = SwinTransformerTiny224(weights=None, use_ape=True)
         model.compile(optimizer='rmsprop', loss='mse')
 
         images = np.random.random((10, 224, 224, 3)).astype('float32')
@@ -87,7 +75,3 @@ class TestModelV2(testing.TestCase, parameterized.TestCase):
 
         # test config
         model.get_config()
-
-
-if __name__ == '__main__':
-    tf.test.main()

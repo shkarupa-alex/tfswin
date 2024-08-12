@@ -7,7 +7,7 @@ with open('README.md', 'r') as fh:
 setup(
     name='tfswin',
     version='4.0.0',
-    description='Keras (TensorFlow v2) reimplementation of Swin Transformer V1 & V2 models.',
+    description='keras.src (TensorFlow v2) reimplementation of Swin Transformer V1 & V2 models.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/shkarupa-alex/tfswin',

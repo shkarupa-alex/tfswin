@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import testing
 from tfswin.merge import PatchMerging
 
@@ -22,7 +21,3 @@ class TestPatchMerging(testing.TestCase):
             expected_output_shape=(2, 6, 7, 6),
             expected_output_dtype='float32'
         )
-
-
-if __name__ == '__main__':
-    tf.test.main()

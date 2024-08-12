@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import testing
 from tfswin.mlp import MLP
 
@@ -21,7 +20,3 @@ class TestMLP(testing.TestCase):
             expected_output_shape=(2, 4, 4, 3),
             expected_output_dtype='float32'
         )
-
-
-if __name__ == '__main__':
-    tf.test.main()

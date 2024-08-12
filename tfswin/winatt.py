@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras.src import initializers, layers
+from keras.src import initializers, layers, ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 from tfswin.window import window_partition_fused, window_reverse_fused
@@ -91,29 +91,29 @@ class WindowAttention(layers.Layer):
         super().build(input_shape)
 
     def relative_table(self, window_size):
-        offset = tf.range(1 - window_size, window_size)
-        offset = tf.cast(offset, self.compute_dtype)
-        offset = tf.stack(tf.meshgrid(offset, offset, indexing='ij'))
-        offset = tf.transpose(offset, [1, 2, 0])[None]
+        offset = ops.arange(1 - window_size, window_size)
+        offset = ops.cast(offset, self.compute_dtype)
+        offset = ops.stack(ops.meshgrid(offset, offset, indexing='ij'))
+        offset = ops.transpose(offset, [1, 2, 0])[None]
 
         window = self.window_pretrain if self.window_pretrain > 0 else window_size
 
-        offset *= 8. / (tf.cast(window, self.compute_dtype) - 1.)
-        offset = tf.sign(offset) * tf.math.log1p(tf.abs(offset)) / np.log(8)
+        offset *= 8. / (ops.cast(window, self.compute_dtype) - 1.)
+        offset = ops.sign(offset) * ops.log1p(ops.abs(offset)) / np.log(8)
 
         return offset
 
     def with_mask(self, attn, mask, length):
-        mask_windows = tf.shape(mask)[1]
-        attn = tf.reshape(attn, shape=[-1, mask_windows, self.num_heads, length, length])
+        mask_windows = ops.shape(mask)[1]
+        attn = ops.reshape(attn, [-1, mask_windows, self.num_heads, length, length])
         attn += mask
-        attn = tf.reshape(attn, shape=[-1, self.num_heads, length, length])
+        attn = ops.reshape(attn, [-1, self.num_heads, length, length])
 
         return attn
 
     def call(self, inputs, **kwargs):
         inputs, window_size, relative_index, attention_mask = inputs
-        height, width = tf.unstack(tf.shape(inputs)[1:3])
+        height, width = ops.shape(inputs)[1:3]
         length = window_size ** 2
 
         qkv = self.qkv(inputs)
@@ -123,31 +123,34 @@ class WindowAttention(layers.Layer):
             qkv = tf.nn.bias_add(qkv, qkv_bias)
 
         # QKV heads partition - fused with windows partitioning
-        # qkv = tf.reshape(qkv, [-1, length, 3, self.num_heads, self.channels // self.num_heads])
-        # qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
+        # qkv = ops.reshape(qkv, [-1, length, 3, self.num_heads, self.channels // self.num_heads])
+        # qkv = ops.transpose(qkv, [2, 0, 3, 1, 4])
 
         qkv = window_partition_fused(qkv, height, width, window_size, self.num_heads)
 
         q, k, v = tf.unstack(qkv, 3)
         if self.swin_v2:
-            scale = tf.minimum(self.scale, np.log(1. / .01))
-            scale = tf.exp(scale)
+            scale = ops.minimum(self.scale, np.log(1. / .01))
+            scale = ops.cast(ops.exp(scale), self.compute_dtype)
             q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
             k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
         else:
             scale = self.scale
+
         q *= scale
-        attn = tf.matmul(q, k, transpose_b=True)
+        k = ops.swapaxes(k, -2, -1)
+
+        attn = ops.matmul(q, k)
 
         if self.swin_v2:
             relative_bias = self.cpb0(self.relative_table(window_size))
             relative_bias = self.cpb1(relative_bias)
-            relative_bias = tf.reshape(relative_bias, [-1, self.num_heads])
-            bias = tf.gather(relative_bias, relative_index) * 16.
+            relative_bias = ops.reshape(relative_bias, [-1, self.num_heads])
+            bias = ops.take(relative_bias, relative_index, axis=0) * 16.
         else:
-            bias = tf.gather(self.relative_bias, relative_index)
-        bias = tf.reshape(bias, [length, length, -1])
-        bias = tf.transpose(bias, perm=[2, 0, 1])
+            bias = ops.take(self.relative_bias, relative_index, axis=0)
+        bias = ops.reshape(bias, [length, length, -1])
+        bias = ops.transpose(bias, [2, 0, 1])
         attn = attn + bias[None]
 
         attn = self.with_mask(attn, attention_mask, length)
@@ -158,8 +161,8 @@ class WindowAttention(layers.Layer):
         outputs = tf.matmul(attn, v)
 
         # V heads merge - fused with windows merging
-        # outputs = tf.transpose(outputs, perm=[0, 2, 1, 3])
-        # outputs = tf.reshape(outputs, [-1, length, self.channels])
+        # outputs = ops.transpose(outputs, [0, 2, 1, 3])
+        # outputs = ops.reshape(outputs, [-1, length, self.channels])
 
         outputs = window_reverse_fused(outputs, height, width, window_size, self.num_heads)
 
