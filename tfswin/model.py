@@ -102,20 +102,13 @@ def SwinTransformer(
             raise ValueError(f'Expecting `input_tensor` to be a symbolic tensor instance. '
                              f'Got {input_tensor} of type {type(input_tensor)}')
 
-    if input_tensor is not None:
-        tensor_shape = backend.int_shape(input_tensor)[1:]
-        if input_shape and tensor_shape != input_shape:
-            raise ValueError('Shape of `input_tensor` should equals to `input_shape` if both provided.')
-        else:
-            input_shape = tensor_shape
-
     # Determine proper input shape
     input_shape = imagenet_utils.obtain_input_shape(
         input_shape,
         default_size=pretrain_size,
         min_size=32,
-        data_format='channel_last',
-        require_flatten=False,
+        data_format=backend.image_data_format(),
+        require_flatten=include_top,
         weights=weights)
     input_dtype = dtype_policy.dtype_policy().compute_dtype
 
